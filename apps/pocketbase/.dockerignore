@@ -1,0 +1,8 @@
+pb_data
+pb_data.backup*
+node_modules
+.env
+.env.*
+*.log
+.git
+pocketbase

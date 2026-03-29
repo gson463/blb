@@ -1,0 +1,32 @@
+# Deploy: from repo root →  fly deploy --config apps/pocketbase/fly.toml --remote-only
+# Or from apps/pocketbase →  fly deploy
+#
+# Before first deploy:
+#   1. fly apps create blb-pocketbase   (or rename `app` below to your unique name)
+#   2. fly volumes create pb_data --region iad --size 1 --app blb-pocketbase
+#   3. fly secrets set PB_ENCRYPTION_KEY="<32-char key same as local .env>" --app blb-pocketbase
+
+app = "blb-pocketbase"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # PocketBase reads PB_ENCRYPTION_KEY from Fly secrets (do not commit real values)
+
+[http_service]
+  internal_port = 8090
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[[mounts]]
+  source = "pb_data"
+  destination = "/data"

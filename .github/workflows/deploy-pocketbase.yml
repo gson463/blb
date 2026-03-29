@@ -1,0 +1,29 @@
+# Requires GitHub secret: FLY_API_TOKEN (fly tokens create from https://fly.io/user/personal_access_tokens)
+# Requires Fly app + volume created once (see apps/pocketbase/fly.toml comments).
+
+name: Deploy PocketBase to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/pocketbase/**'
+      - '.github/workflows/deploy-pocketbase.yml'
+
+concurrency:
+  group: fly-pocketbase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        working-directory: apps/pocketbase
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only

@@ -1,0 +1,27 @@
+## Pages
+- [BELIBELI DIGITAL MANAGER](/home): Choose how to sign in: owner & staff, or tenant.
+- [Dashboard - BELIBELI DIGITAL MANAGER](/landlorddashboard): Manage your properties, tenants, and rental operations from your dashboard.
+- [How to use the tenant portal — BELIBELI](/tenantguide): Instructions for using the BELIBELI tenant portal: invoices, payments, and your lease.
+- [Invoice Management - BELIBELI DIGITAL MANAGER](/invoicemanagement): Manage rent invoices, track payments, and monitor overdue accounts.
+- [Lease Management - BELIBELI DIGITAL MANAGER](/leasemanagement): Manage your property leases, track expiry dates, and handle renewals.
+- [My Invoices - BELIBELI DIGITAL MANAGER](/tenantinvoices): No description available
+- [My Lease - BELIBELI DIGITAL MANAGER](/tenantlease): No description available
+- [My Profile - BELIBELI DIGITAL MANAGER](/landlordprofile): No description available
+- [My Profile - BELIBELI DIGITAL MANAGER](/staffprofile): No description available
+- [My Profile - BELIBELI DIGITAL MANAGER](/tenantprofile): No description available
+- [My Unit - BELIBELI DIGITAL MANAGER](/tenantunit): No description available
+- [Payment History - BELIBELI DIGITAL MANAGER](/paymenthistory): View comprehensive payment history across all properties and tenants.
+- [Payment History - BELIBELI DIGITAL MANAGER](/tenantpaymenthistory): No description available
+- [Payment Management - BELIBELI DIGITAL MANAGER](/paymentmanagement): Review, approve, and manage tenant rent payments.
+- [Properties - BELIBELI DIGITAL MANAGER](/propertymanagement): Manage your rental properties and view property details.
+- [Sign in — BELIBELI DIGITAL MANAGER](/login): Private access to your property management workspace.
+- [Sign Up - BELIBELI DIGITAL MANAGER](/signup): Create your BELIBELI DIGITAL MANAGER account and start managing your properties professionally.
+- [SMS & notifications — BELIBELI](/smsnotifications): No description available
+- [Staff Dashboard - BELIBELI DIGITAL MANAGER](/staffdashboard): No description available
+- [Staff Management - BELIBELI DIGITAL MANAGER](/staffmanagement): No description available
+- [System configuration — BELIBELI](/systemconfiguration): No description available
+- [Tenant Dashboard - BELIBELI DIGITAL MANAGER](/tenantdashboard): No description available
+- [Tenant sign in — BELIBELI](/tenantlogin): Tenant portal — invoices, payments, and your home.
+- [Tenants - BELIBELI DIGITAL MANAGER](/tenantmanagement): Manage your tenants and track tenant information.
+- [Units - BELIBELI DIGITAL MANAGER](/unitmanagement): Manage your rental units and track occupancy status.
+- [Upload Payment - BELIBELI DIGITAL MANAGER](/tenantpaymentupload): No description available

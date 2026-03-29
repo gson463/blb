@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# PocketBase local data & uploads (never commit)
+apps/pocketbase/pb_data/
+apps/pocketbase/pb_data.backup*/
+
+# PocketBase binary (large; install via https://pocketbase.io/docs/ — optional to commit)
+apps/pocketbase/pocketbase
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Vercel
+.vercel

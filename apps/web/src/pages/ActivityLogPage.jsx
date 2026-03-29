@@ -13,22 +13,32 @@ const ActivityLogPage = () => {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
+    if (!currentUser?.id) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
     (async () => {
       try {
-        const filter = `landlord_id = "${currentUser.id}" || user_id = "${currentUser.id}"`;
+        setLoading(true);
+        // Rely on collection listRule (landlord_id / user_id / staff employer scope).
         const res = await pb.collection('activity_logs').getList(1, 100, {
-          filter,
           sort: '-created',
           $autoCancel: false,
         });
-        setItems(res.items);
+        if (!cancelled) setItems(res.items);
       } catch (e) {
         console.error(e);
         toast.error('Could not load activity log.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser?.id]);
 
   return (

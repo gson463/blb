@@ -75,29 +75,35 @@ const AppShell = ({ children }) => {
     [location.pathname]
   );
 
-  const navLinks = [];
-  navLinks.push({ path: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard });
+  const overviewLinks = [{ path: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard }];
 
+  const portfolioLinks = [];
   if (hasPermission('view_properties')) {
-    navLinks.push({ path: `${basePath}/properties`, label: 'Properties', icon: Building2 });
+    portfolioLinks.push({ path: `${basePath}/properties`, label: 'Properties', icon: Building2 });
   }
   if (hasPermission('view_units')) {
-    navLinks.push({ path: `${basePath}/units`, label: 'Units', icon: Home });
+    portfolioLinks.push({ path: `${basePath}/units`, label: 'Units', icon: Home });
   }
   if (hasPermission('view_tenants')) {
-    navLinks.push({ path: `${basePath}/tenants`, label: 'Tenants', icon: Users });
+    portfolioLinks.push({ path: `${basePath}/tenants`, label: 'Tenants', icon: Users });
   }
   if (hasPermission('view_leases')) {
-    navLinks.push({ path: `${basePath}/leases`, label: 'Leases', icon: FileText });
-  }
-  if (hasPermission('view_invoices')) {
-    navLinks.push({ path: `${basePath}/invoices`, label: 'Invoices', icon: Receipt });
+    portfolioLinks.push({ path: `${basePath}/leases`, label: 'Leases', icon: FileText });
   }
 
-  if (userRole === 'landlord') {
-    navLinks.push({ path: '/settings', label: 'System configuration', icon: Settings });
-    navLinks.push({ path: '/activity', label: 'Activity log', icon: History });
+  const billingLinks = [];
+  if (hasPermission('view_invoices')) {
+    billingLinks.push({ path: `${basePath}/invoices`, label: 'Invoices', icon: Receipt });
   }
+
+  const adminLinks = [];
+  if (userRole === 'landlord') {
+    adminLinks.push({ path: '/settings', label: 'System configuration', icon: Settings });
+    adminLinks.push({ path: '/activity', label: 'Activity log', icon: History });
+  }
+
+  const sectionLabelClass =
+    'px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground';
 
   const paymentBase = userRole === 'staff' ? '/staff/payments' : '/payments';
   const historyBase = userRole === 'staff' ? '/staff/payment-history' : '/payment-history';
@@ -187,11 +193,33 @@ const AppShell = ({ children }) => {
     const wide = layout === 'mobile' || !collapsed;
     const condensed = layout === 'sidebar' && collapsed;
 
+    const SectionLabel = ({ children }) =>
+      wide ? <p className={sectionLabelClass}>{children}</p> : null;
+
     return (
-      <nav className="flex flex-col gap-1 p-2">
-        {navLinks.map((item) => (
-          <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
-        ))}
+      <nav className="flex flex-col gap-4 p-2">
+        <div className="space-y-1">
+          <SectionLabel>Overview</SectionLabel>
+          {overviewLinks.map((item) => (
+            <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
+          ))}
+        </div>
+
+        {portfolioLinks.length > 0 && (
+          <div className="space-y-1">
+            <SectionLabel>Portfolio</SectionLabel>
+            {portfolioLinks.map((item) => (
+              <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
+            ))}
+          </div>
+        )}
+
+        {(billingLinks.length > 0 || showPayments) && (
+          <div className="space-y-1">
+            <SectionLabel>Billing</SectionLabel>
+            {billingLinks.map((item) => (
+              <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
+            ))}
 
         {showPayments && (
           <>
@@ -276,9 +304,12 @@ const AppShell = ({ children }) => {
             )}
           </>
         )}
+          </div>
+        )}
 
         {reportLinks.length > 0 && (
-          <>
+          <div className="space-y-1">
+            <SectionLabel>Analytics</SectionLabel>
             {wide ? (
               <Collapsible defaultOpen={reportsActive}>
                 <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-muted">
@@ -344,17 +375,25 @@ const AppShell = ({ children }) => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-          </>
+          </div>
         )}
 
-        {showStaff && (
-          <NavLink
-            to={staffPath}
-            label="Staff"
-            icon={UserCog}
-            onNavigate={onNavigate}
-            condensed={condensed}
-          />
+        {(adminLinks.length > 0 || showStaff) && (
+          <div className="space-y-1">
+            <SectionLabel>Administration</SectionLabel>
+            {adminLinks.map((item) => (
+              <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
+            ))}
+            {showStaff && (
+              <NavLink
+                to={staffPath}
+                label="Staff"
+                icon={UserCog}
+                onNavigate={onNavigate}
+                condensed={condensed}
+              />
+            )}
+          </div>
         )}
       </nav>
     );

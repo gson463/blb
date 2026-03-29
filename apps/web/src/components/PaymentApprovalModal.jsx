@@ -46,8 +46,12 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
         }
         
         toast.success('Payment approved successfully');
+        const prop = payment.expand?.property_id;
+        const landlordId =
+          typeof prop === 'object' && prop?.landlord_id ? prop.landlord_id : '';
         await logActivity({
           user: currentUser,
+          landlordId,
           action: 'payment.approved',
           entity_type: 'payment',
           entity_id: payment.id,
@@ -63,8 +67,12 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
         }, { $autoCancel: false });
         
         toast.success('Payment rejected');
+        const propRej = payment.expand?.property_id;
+        const landlordIdRej =
+          typeof propRej === 'object' && propRej?.landlord_id ? propRej.landlord_id : '';
         await logActivity({
           user: currentUser,
+          landlordId: landlordIdRej,
           action: 'payment.rejected',
           entity_type: 'payment',
           entity_id: payment.id,

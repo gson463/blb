@@ -7,6 +7,7 @@ import { buildTenantsFilter } from '@/lib/staffDataScope';
 import { fetchAvailableUnitsForAssignment } from '@/lib/availableUnits';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ const TenantManagement = () => {
   const [assignableUnits, setAssignableUnits] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
+  const [selectedIds, setSelectedIds] = useState({});
 
   const fetchTenants = useCallback(async () => {
     try {
@@ -89,6 +91,48 @@ const TenantManagement = () => {
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const allSelected =
+    tenants.length > 0 && tenants.every((t) => selectedIds[t.id]);
+  const selectAll = () => {
+    const next = { ...selectedIds };
+    tenants.forEach((t) => {
+      next[t.id] = true;
+    });
+    setSelectedIds(next);
+  };
+  const clearSelection = () => setSelectedIds({});
+  const selectedCount = Object.values(selectedIds).filter(Boolean).length;
+
+  const handleBulkDelete = async () => {
+    const ids = Object.entries(selectedIds)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    if (!ids.length) {
+      toast.message('Select tenants first');
+      return;
+    }
+    if (!window.confirm(`Delete ${ids.length} tenant${ids.length === 1 ? '' : 's'}?`)) return;
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await pb.collection('tenants').delete(id, { $autoCancel: false });
+        ok++;
+      } catch (e) {
+        console.error(e);
+        fail++;
+      }
+    }
+    if (ok) toast.success(`Deleted ${ok} tenant${ok === 1 ? '' : 's'}`);
+    if (fail) toast.error(`${fail} could not be deleted`);
+    clearSelection();
+    await refreshAfterTenantChange();
+  };
+
   const handleFormClose = () => {
     setShowForm(false);
     setSelectedTenant(null);
@@ -116,18 +160,40 @@ const TenantManagement = () => {
       <AppShell>
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Tenants</h1>
-                <p className="text-muted-foreground">
-                  Create tenant accounts, assign a unit, and share portal login details. Only vacant units or units
-                  with no active lease appear below as available.
-                </p>
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Tenants</h1>
+                  <p className="text-muted-foreground">
+                    Create tenant accounts, assign a unit, and share portal login details. Only vacant units or units
+                    with no active lease appear below as available.
+                  </p>
+                </div>
+                <Button onClick={() => setShowForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Tenant
+                </Button>
               </div>
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Tenant
-              </Button>
+              {tenants.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground mr-2">Bulk: {selectedCount} selected</span>
+                  <Button type="button" variant="outline" size="sm" onClick={selectAll}>
+                    Select all
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={!selectedCount}
+                    onClick={handleBulkDelete}
+                  >
+                    Delete selected
+                  </Button>
+                </div>
+              )}
             </div>
 
             <Card className="mb-8 border-primary/20 bg-primary/[0.03]">
@@ -203,6 +269,16 @@ const TenantManagement = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={allSelected}
+                            onCheckedChange={(v) => {
+                              if (v) selectAll();
+                              else clearSelection();
+                            }}
+                            aria-label="Select all tenants"
+                          />
+                        </TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Contact</TableHead>
                         <TableHead>Unit</TableHead>
@@ -214,6 +290,13 @@ const TenantManagement = () => {
                     <TableBody>
                       {tenants.map((tenant) => (
                         <TableRow key={tenant.id}>
+                          <TableCell className="w-10">
+                            <Checkbox
+                              checked={!!selectedIds[tenant.id]}
+                              onCheckedChange={() => toggleSelect(tenant.id)}
+                              aria-label={`Select ${tenant.name}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{tenant.name}</TableCell>
                           <TableCell>
                             <div className="space-y-1">

@@ -2,7 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { buildPropertiesFilter, buildTenantsFilter, buildUnitsFilter } from '@/lib/staffDataScope';
+import {
+  buildPropertiesFilter,
+  buildTenantsFilter,
+  buildUnitsFilter,
+  getLandlordScopeId,
+} from '@/lib/staffDataScope';
 import { generateInvoiceNumber } from '@/lib/invoiceUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -141,6 +146,7 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
         toast.success('Invoice updated successfully');
         await logActivity({
           user: currentUser,
+          landlordId: getLandlordScopeId(currentUser) || '',
           action: 'invoice.updated',
           entity_type: 'invoice',
           entity_id: invoice.id,
@@ -152,6 +158,7 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
         toast.success('Invoice created successfully');
         await logActivity({
           user: currentUser,
+          landlordId: getLandlordScopeId(currentUser) || '',
           action: 'invoice.created',
           entity_type: 'invoice',
           entity_id: created.id,

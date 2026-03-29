@@ -1,14 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { buildPropertiesFilter } from '@/lib/staffDataScope';
+import { buildPropertiesFilter, getPropertyOwnerId } from '@/lib/staffDataScope';
+import { downloadCsv, parseCsv } from '@/lib/csvUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import AppShell from '@/components/AppShell.jsx';
 import PropertyForm from '@/components/PropertyForm.jsx';
-import { Plus, MapPin, Edit, Trash2, Building2 } from 'lucide-react';
+import { Plus, MapPin, Edit, Trash2, Building2, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PropertyManagement = () => {
@@ -17,12 +19,10 @@ const PropertyManagement = () => {
   const [properties, setProperties] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [selectedIds, setSelectedIds] = useState({});
+  const importInputRef = useRef(null);
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     try {
       const records = await pb.collection('properties').getFullList({
         filter: buildPropertiesFilter(currentUser),
@@ -36,6 +36,103 @@ const PropertyManagement = () => {
     } finally {
       setLoading(false);
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    fetchProperties();
+  }, [currentUser?.id, fetchProperties]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const selectAllVisible = () => {
+    const next = { ...selectedIds };
+    properties.forEach((p) => {
+      next[p.id] = true;
+    });
+    setSelectedIds(next);
+  };
+
+  const clearSelection = () => setSelectedIds({});
+
+  const selectedCount = Object.values(selectedIds).filter(Boolean).length;
+
+  const handleBulkDelete = async () => {
+    const ids = Object.entries(selectedIds)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    if (!ids.length) {
+      toast.message('Select one or more properties first');
+      return;
+    }
+    if (!window.confirm(`Delete ${ids.length} propert${ids.length === 1 ? 'y' : 'ies'}? This cannot be undone.`)) return;
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await pb.collection('properties').delete(id, { $autoCancel: false });
+        ok++;
+      } catch (e) {
+        console.error(e);
+        fail++;
+      }
+    }
+    if (ok) toast.success(`Deleted ${ok} propert${ok === 1 ? 'y' : 'ies'}`);
+    if (fail) toast.error(`${fail} could not be deleted (may have units or related data)`);
+    clearSelection();
+    fetchProperties();
+  };
+
+  const downloadTemplate = () => {
+    downloadCsv('properties-import-template.csv', [
+      { name: 'Example Property', location: 'City, Country', description: 'Optional notes' },
+    ]);
+    toast.message('Template downloaded — replace the example row or add more rows');
+  };
+
+  const handleImportCsv = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    let text;
+    try {
+      text = await file.text();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not read file');
+      return;
+    }
+    const rows = parseCsv(text);
+    if (!rows.length) {
+      toast.error('No data rows found in CSV');
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (const row of rows) {
+      const name = row.name?.trim();
+      const location = row.location?.trim();
+      if (!name || !location) {
+        fail++;
+        continue;
+      }
+      try {
+        const fd = new FormData();
+        fd.append('name', name);
+        fd.append('location', location);
+        fd.append('description', row.description?.trim() || '');
+        fd.append('landlord_id', getPropertyOwnerId(currentUser));
+        await pb.collection('properties').create(fd, { $autoCancel: false });
+        ok++;
+      } catch (err) {
+        console.error(err);
+        fail++;
+      }
+    }
+    toast.message(`Imported ${ok} propert${ok === 1 ? 'y' : 'ies'}${fail ? ` (${fail} skipped or failed)` : ''}`);
+    fetchProperties();
   };
 
   const handleEdit = (property) => {
@@ -83,15 +180,59 @@ const PropertyManagement = () => {
       <AppShell>
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Properties</h1>
-                <p className="text-muted-foreground">Manage your rental properties</p>
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Properties</h1>
+                  <p className="text-muted-foreground">Manage your rental properties</p>
+                </div>
+                <Button onClick={() => setShowForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Property
+                </Button>
               </div>
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Property
-              </Button>
+              {properties.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground mr-2">
+                    Bulk: {selectedCount} selected
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={selectAllVisible}>
+                    Select all
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={!selectedCount}
+                    onClick={handleBulkDelete}
+                  >
+                    Delete selected
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Template
+                  </Button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={handleImportCsv}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-1" />
+                    Import CSV
+                  </Button>
+                </div>
+              )}
             </div>
 
             {properties.length === 0 ? (
@@ -113,8 +254,15 @@ const PropertyManagement = () => {
                 {properties.map((property) => (
                   <Card
                     key={property.id}
-                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col"
+                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col relative"
                   >
+                    <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-md bg-background/90 px-2 py-1 border">
+                      <Checkbox
+                        checked={!!selectedIds[property.id]}
+                        onCheckedChange={() => toggleSelect(property.id)}
+                        aria-label={`Select ${property.name}`}
+                      />
+                    </div>
                     <div className="aspect-video w-full bg-muted shrink-0 overflow-hidden">
                       {property.image ? (
                         <img

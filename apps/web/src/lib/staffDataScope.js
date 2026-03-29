@@ -88,3 +88,14 @@ export function buildLeaseListFilter(user, propertyId, status) {
 export function getPropertyOwnerId(user) {
   return getLandlordScopeId(user) || user?.id;
 }
+
+/** Pending lease requests badge / count — scoped to landlord or staff employer (and collector properties). */
+export function buildPendingLeaseRequestsFilter(user) {
+  const lid = getLandlordScopeId(user);
+  if (!lid) return 'id = ""';
+  if (user.role === 'staff' && user.staff_role === 'collector' && user.assigned_properties?.length) {
+    const props = user.assigned_properties.map((id) => `property_id = "${id}"`).join(' || ');
+    return `status = "pending" && (${props})`;
+  }
+  return `status = "pending" && property_id.landlord_id = "${lid}"`;
+}

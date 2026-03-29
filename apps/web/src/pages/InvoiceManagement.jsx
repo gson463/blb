@@ -1,13 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { buildInvoiceListFilter, buildPropertiesFilter } from '@/lib/staffDataScope';
+import { buildInvoiceListFilter, buildPropertiesFilter, getLandlordScopeId } from '@/lib/staffDataScope';
+import { downloadCsv, parseCsv } from '@/lib/csvUtils';
 import { downloadInvoicePdf } from '@/lib/pdfUtils';
-import { calculateInvoiceStatus, formatCurrency } from '@/lib/invoiceUtils';
+import { calculateInvoiceStatus, formatCurrency, generateInvoiceNumber } from '@/lib/invoiceUtils';
+import { logActivity } from '@/lib/activityLog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table,
@@ -19,7 +22,7 @@ import {
 } from '@/components/ui/table';
 import AppShell from '@/components/AppShell.jsx';
 import InvoiceForm from '@/components/InvoiceForm.jsx';
-import { Plus, FileText, Edit, Trash2, Download, CheckCircle } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Download, CheckCircle, Upload } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -41,6 +44,8 @@ const InvoiceManagement = () => {
   const pageSize = 50;
   const [showForm, setShowForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedIds, setSelectedIds] = useState({});
+  const importInputRef = useRef(null);
 
   useEffect(() => {
     fetchProperties();
@@ -134,6 +139,151 @@ const InvoiceManagement = () => {
     setSelectedInvoice(null);
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const allOnPageSelected =
+    invoices.length > 0 && invoices.every((inv) => selectedIds[inv.id]);
+
+  const selectAllOnPage = () => {
+    const next = { ...selectedIds };
+    invoices.forEach((inv) => {
+      next[inv.id] = true;
+    });
+    setSelectedIds(next);
+  };
+
+  const clearSelection = () => setSelectedIds({});
+
+  const selectedCount = Object.values(selectedIds).filter(Boolean).length;
+
+  const handleBulkMarkPaid = async () => {
+    const ids = invoices
+      .filter((inv) => selectedIds[inv.id] && inv.status !== 'Paid')
+      .map((inv) => inv.id);
+    if (!ids.length) {
+      toast.message('Select unpaid invoices to mark as paid');
+      return;
+    }
+    let ok = 0;
+    for (const id of ids) {
+      try {
+        await pb.collection('invoices').update(id, { status: 'Paid' }, { $autoCancel: false });
+        ok++;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    toast.success(`Marked ${ok} invoice${ok === 1 ? '' : 's'} as paid`);
+    clearSelection();
+    fetchInvoices();
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Object.entries(selectedIds)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    if (!ids.length) {
+      toast.message('Select invoices first');
+      return;
+    }
+    if (!window.confirm(`Delete ${ids.length} invoice${ids.length === 1 ? '' : 's'}?`)) return;
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await pb.collection('invoices').delete(id, { $autoCancel: false });
+        ok++;
+      } catch (e) {
+        console.error(e);
+        fail++;
+      }
+    }
+    if (ok) toast.success(`Deleted ${ok} invoice${ok === 1 ? '' : 's'}`);
+    if (fail) toast.error(`${fail} could not be deleted`);
+    clearSelection();
+    fetchInvoices();
+  };
+
+  const downloadTemplate = () => {
+    downloadCsv('invoices-import-template.csv', [
+      {
+        property_id: '',
+        unit_id: '',
+        tenant_id: '',
+        amount: '1200',
+        due_date: '2026-04-01',
+        status: 'Unpaid',
+      },
+    ]);
+    toast.message('Use relation IDs from PocketBase admin or pick from each entity’s URL in the app');
+  };
+
+  const handleImportCsv = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    let text;
+    try {
+      text = await file.text();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not read file');
+      return;
+    }
+    const rows = parseCsv(text);
+    if (!rows.length) {
+      toast.error('No data rows found');
+      return;
+    }
+    const lid = getLandlordScopeId(currentUser);
+    let ok = 0;
+    let fail = 0;
+    for (const row of rows) {
+      const property_id = row.property_id?.trim();
+      const unit_id = row.unit_id?.trim();
+      const tenant_id = row.tenant_id?.trim();
+      const amount = parseFloat(row.amount);
+      const dueRaw = row.due_date?.trim();
+      if (!property_id || !unit_id || !tenant_id || !dueRaw || Number.isNaN(amount) || amount <= 0) {
+        fail++;
+        continue;
+      }
+      const due_date = /^\d{4}-\d{2}-\d{2}$/.test(dueRaw)
+        ? `${dueRaw} 12:00:00.000Z`
+        : `${dueRaw.split('T')[0]} 12:00:00.000Z`;
+      let status = row.status?.trim() || 'Unpaid';
+      if (!['Unpaid', 'Paid', 'Pending Approval'].includes(status)) status = 'Unpaid';
+      try {
+        const data = {
+          property_id,
+          unit_id,
+          tenant_id,
+          amount,
+          due_date,
+          status,
+          invoice_number: generateInvoiceNumber(),
+        };
+        const created = await pb.collection('invoices').create(data, { $autoCancel: false });
+        ok++;
+        await logActivity({
+          user: currentUser,
+          landlordId: lid || '',
+          action: 'invoice.created',
+          entity_type: 'invoice',
+          entity_id: created.id,
+          details: data.invoice_number,
+        });
+      } catch (err) {
+        console.error(err);
+        fail++;
+      }
+    }
+    toast.message(`Created ${ok} invoice${ok === 1 ? '' : 's'}${fail ? ` (${fail} failed)` : ''}`);
+    fetchInvoices();
+  };
+
   if (loading) {
     return (
       <AppShell>
@@ -191,6 +341,44 @@ const InvoiceManagement = () => {
               </div>
             </div>
 
+            {invoices.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm mb-6">
+                <span className="text-muted-foreground mr-2">Bulk: {selectedCount} selected</span>
+                <Button type="button" variant="outline" size="sm" onClick={selectAllOnPage}>
+                  Select page
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+                  Clear
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleBulkMarkPaid}>
+                  Mark paid
+                </Button>
+                <Button type="button" variant="destructive" size="sm" onClick={handleBulkDelete}>
+                  Delete selected
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                  <Download className="w-4 h-4 mr-1" />
+                  Template
+                </Button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleImportCsv}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => importInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  Import CSV
+                </Button>
+              </div>
+            )}
+
             {invoices.length === 0 ? (
               <Card className="text-center py-12">
                 <CardContent>
@@ -211,6 +399,22 @@ const InvoiceManagement = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={allOnPageSelected}
+                            onCheckedChange={(v) => {
+                              if (v) selectAllOnPage();
+                              else {
+                                const next = { ...selectedIds };
+                                invoices.forEach((inv) => {
+                                  delete next[inv.id];
+                                });
+                                setSelectedIds(next);
+                              }
+                            }}
+                            aria-label="Select all on this page"
+                          />
+                        </TableHead>
                         <TableHead>Invoice #</TableHead>
                         <TableHead>Unit / Property</TableHead>
                         <TableHead>Tenant</TableHead>
@@ -227,6 +431,13 @@ const InvoiceManagement = () => {
                         
                         return (
                           <TableRow key={invoice.id} className={isOverdue ? 'bg-destructive/5 hover:bg-destructive/10' : ''}>
+                            <TableCell className="w-10">
+                              <Checkbox
+                                checked={!!selectedIds[invoice.id]}
+                                onCheckedChange={() => toggleSelect(invoice.id)}
+                                aria-label={`Select invoice ${invoice.invoice_number}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                             <TableCell>
                               <div className="font-medium">{invoice.expand?.unit_id?.name}</div>

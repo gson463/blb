@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { createLogger, defineConfig } from 'vite';
+import { createLogger, defineConfig, loadEnv } from 'vite';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import inlineEditPlugin from './plugins/visual-editor/vite-plugin-react-inline-editor.js';
 import editModeDevPlugin from './plugins/visual-editor/vite-plugin-edit-mode.js';
 import selectionModePlugin from './plugins/selection-mode/vite-plugin-selection-mode.js';
@@ -284,51 +287,59 @@ logger.error = (msg, options) => {
 	loggerError(msg, options);
 }
 
-export default defineConfig({
-	customLogger: logger,
-	plugins: [
-		...(isDev
-			? [
-					...(skipCursorUiPlugins
-						? []
-						: [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin()]),
-					iframeRouteRestorationPlugin(),
-					pocketbaseAuthPlugin(),
-				]
-			: []),
-		react(),
-		addTransformIndexHtml
-	],
-	server: {
-		port: 3000,
-		cors: true,
-		headers: {
-			'Cross-Origin-Embedder-Policy': 'credentialless',
-		},
-		allowedHosts: true,
-		// SPA talks to PocketBase at /hcgi/platform (prod path). Proxy to local PB on 8090.
-		proxy: {
-			'/hcgi/platform': {
-				target: 'http://127.0.0.1:8090',
-				changeOrigin: true,
-				rewrite: (path) => path.replace(/^\/hcgi\/platform/, '') || '/',
+export default defineConfig(({ mode }) => {
+	const env = loadEnv(mode, __dirname, '');
+	const pbProxyTarget =
+		env.VITE_POCKETBASE_PROXY_TARGET?.replace(/\/$/, '') ||
+		'https://blb-pocketbase.fly.dev';
+
+	return {
+		customLogger: logger,
+		plugins: [
+			...(isDev
+				? [
+						...(skipCursorUiPlugins
+							? []
+							: [inlineEditPlugin(), editModeDevPlugin(), selectionModePlugin()]),
+						iframeRouteRestorationPlugin(),
+						pocketbaseAuthPlugin(),
+					]
+				: []),
+			react(),
+			addTransformIndexHtml
+		],
+		server: {
+			port: 3000,
+			cors: true,
+			headers: {
+				'Cross-Origin-Embedder-Policy': 'credentialless',
+			},
+			allowedHosts: true,
+			// Dev: browser calls /hcgi/platform → proxy to Fly (default) or local PB via VITE_POCKETBASE_PROXY_TARGET.
+			proxy: {
+				'/hcgi/platform': {
+					target: pbProxyTarget,
+					changeOrigin: true,
+					secure: true,
+					rewrite: (p) => p.replace(/^\/hcgi\/platform/, '') || '/',
+				},
 			},
 		},
-	},
-	resolve: {
-		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json', ],
-		alias: {
-			'@': path.resolve(__dirname, './src'),
+		resolve: {
+			extensions: ['.jsx', '.js', '.tsx', '.ts', '.json', ],
+			alias: {
+				'@': path.resolve(__dirname, './src'),
+			},
 		},
-	},
-	build: {
-		rollupOptions: {
-			external: [
-				'@babel/parser',
-				'@babel/traverse',
-				'@babel/generator',
-				'@babel/types'
-			]
+		build: {
+			rollupOptions: {
+				external: [
+					'@babel/parser',
+					'@babel/traverse',
+					'@babel/generator',
+					'@babel/types'
+				]
+			}
 		}
-	}
+	};
 });

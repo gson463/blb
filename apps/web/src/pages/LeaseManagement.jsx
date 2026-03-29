@@ -3,7 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { buildLeaseListFilter, buildPropertiesFilter } from '@/lib/staffDataScope';
+import {
+  buildLeaseListFilter,
+  buildPendingLeaseRequestsFilter,
+  buildPropertiesFilter,
+} from '@/lib/staffDataScope';
 import { downloadLeasePdf } from '@/lib/pdfUtils';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
 import { formatCurrency } from '@/lib/invoiceUtils';
@@ -49,10 +53,11 @@ const LeaseManagement = () => {
   }, []);
 
   useEffect(() => {
+    if (!currentUser?.id) return;
     (async () => {
       try {
         const list = await pb.collection('lease_requests').getFullList({
-          filter: `status = "pending" && property_id.landlord_id = "${currentUser.id}"`,
+          filter: buildPendingLeaseRequestsFilter(currentUser),
           $autoCancel: false,
         });
         setPendingLeaseRequests(list.length);
@@ -60,7 +65,7 @@ const LeaseManagement = () => {
         setPendingLeaseRequests(0);
       }
     })();
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   useEffect(() => {
     setPage(1);

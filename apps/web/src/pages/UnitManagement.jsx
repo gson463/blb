@@ -1,17 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { buildPropertiesFilter, buildUnitsFilter } from '@/lib/staffDataScope';
+import { downloadCsv, parseCsv } from '@/lib/csvUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppShell from '@/components/AppShell.jsx';
 import UnitForm from '@/components/UnitForm.jsx';
-import { Plus, Home, Edit, Trash2, MapPin } from 'lucide-react';
+import { Plus, Home, Edit, Trash2, MapPin, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/paymentUtils';
+
+const UNIT_TYPES = new Set(['House', 'Apartment', 'Room', 'Shop', 'Plot', 'Office']);
+const UNIT_STATUSES = new Set(['Vacant', 'Occupied']);
 
 const UnitManagement = () => {
   const { currentUser } = useAuth();
@@ -21,13 +26,10 @@ const UnitManagement = () => {
   const [selectedProperty, setSelectedProperty] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [selectedIds, setSelectedIds] = useState({});
+  const importInputRef = useRef(null);
 
-  useEffect(() => {
-    fetchProperties();
-    fetchUnits();
-  }, []);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     try {
       const records = await pb.collection('properties').getFullList({
         filter: buildPropertiesFilter(currentUser),
@@ -37,9 +39,9 @@ const UnitManagement = () => {
     } catch (error) {
       console.error('Error fetching properties:', error);
     }
-  };
+  }, [currentUser]);
 
-  const fetchUnits = async () => {
+  const fetchUnits = useCallback(async () => {
     try {
       const records = await pb.collection('units').getFullList({
         filter: buildUnitsFilter(currentUser),
@@ -54,7 +56,13 @@ const UnitManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    fetchProperties();
+    fetchUnits();
+  }, [currentUser?.id, fetchProperties, fetchUnits]);
 
   const handleEdit = (unit) => {
     setSelectedUnit(unit);
@@ -74,14 +82,124 @@ const UnitManagement = () => {
     }
   };
 
-  const handleFormClose = () => {
-    setShowForm(false);
-    setSelectedUnit(null);
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const filteredUnits = selectedProperty === 'all'
     ? units
-    : units.filter(unit => unit.property_id === selectedProperty);
+    : units.filter((unit) => unit.property_id === selectedProperty);
+
+  const selectAllFiltered = () => {
+    const next = { ...selectedIds };
+    filteredUnits.forEach((u) => {
+      next[u.id] = true;
+    });
+    setSelectedIds(next);
+  };
+
+  const clearSelection = () => setSelectedIds({});
+
+  const selectedCount = Object.values(selectedIds).filter(Boolean).length;
+
+  const handleBulkDelete = async () => {
+    const ids = Object.entries(selectedIds)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    if (!ids.length) {
+      toast.message('Select one or more units first');
+      return;
+    }
+    if (!window.confirm(`Delete ${ids.length} unit${ids.length === 1 ? '' : 's'}?`)) return;
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await pb.collection('units').delete(id, { $autoCancel: false });
+        ok++;
+      } catch (e) {
+        console.error(e);
+        fail++;
+      }
+    }
+    if (ok) toast.success(`Deleted ${ok} unit${ok === 1 ? '' : 's'}`);
+    if (fail) toast.error(`${fail} could not be deleted`);
+    clearSelection();
+    fetchUnits();
+  };
+
+  const downloadTemplate = () => {
+    downloadCsv('units-import-template.csv', [
+      {
+        property_id: '',
+        property_name: 'Match by name if property_id empty',
+        name: 'Unit A',
+        type: 'Apartment',
+        rent_amount: '1200',
+        status: 'Vacant',
+      },
+    ]);
+    toast.message('Template downloaded — use property_id from Properties or property_name to match');
+  };
+
+  const handleImportCsv = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    let text;
+    try {
+      text = await file.text();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not read file');
+      return;
+    }
+    const rows = parseCsv(text);
+    if (!rows.length) {
+      toast.error('No data rows found');
+      return;
+    }
+    let ok = 0;
+    let fail = 0;
+    for (const row of rows) {
+      let propId = row.property_id?.trim();
+      const propName = row.property_name?.trim();
+      if (!propId && propName) {
+        const match = properties.find((p) => p.name.toLowerCase() === propName.toLowerCase());
+        propId = match?.id;
+      }
+      const name = row.name?.trim();
+      const rent = parseFloat(row.rent_amount);
+      if (!propId || !name || Number.isNaN(rent) || rent <= 0) {
+        fail++;
+        continue;
+      }
+      let type = row.type?.trim() || 'Apartment';
+      if (!UNIT_TYPES.has(type)) type = 'Apartment';
+      let status = row.status?.trim() || 'Vacant';
+      if (!UNIT_STATUSES.has(status)) status = 'Vacant';
+      try {
+        const fd = new FormData();
+        fd.append('property_id', propId);
+        fd.append('name', name);
+        fd.append('type', type);
+        fd.append('rent_amount', String(rent));
+        fd.append('status', status);
+        await pb.collection('units').create(fd, { $autoCancel: false });
+        ok++;
+      } catch (err) {
+        console.error(err);
+        fail++;
+      }
+    }
+    toast.message(`Imported ${ok} unit${ok === 1 ? '' : 's'}${fail ? ` (${fail} skipped or failed)` : ''}`);
+    fetchUnits();
+  };
+
+  const handleFormClose = () => {
+    setShowForm(false);
+    setSelectedUnit(null);
+  };
 
   if (loading) {
     return (
@@ -105,30 +223,72 @@ const UnitManagement = () => {
       <AppShell>
         <main className="flex-1 py-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Units</h1>
-                <p className="text-muted-foreground">Manage your rental units</p>
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Units</h1>
+                  <p className="text-muted-foreground">Manage your rental units</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue placeholder="Filter by property" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Properties</SelectItem>
+                      {properties.map((property) => (
+                        <SelectItem key={property.id} value={property.id}>
+                          {property.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => setShowForm(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Unit
+                  </Button>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Select value={selectedProperty} onValueChange={setSelectedProperty}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Filter by property" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Properties</SelectItem>
-                    {properties.map((property) => (
-                      <SelectItem key={property.id} value={property.id}>
-                        {property.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={() => setShowForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Unit
-                </Button>
-              </div>
+              {filteredUnits.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+                  <span className="text-muted-foreground mr-2">Bulk: {selectedCount} selected</span>
+                  <Button type="button" variant="outline" size="sm" onClick={selectAllFiltered}>
+                    Select filtered
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={!selectedCount}
+                    onClick={handleBulkDelete}
+                  >
+                    Delete selected
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Template
+                  </Button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={handleImportCsv}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-1" />
+                    Import CSV
+                  </Button>
+                </div>
+              )}
             </div>
 
             {filteredUnits.length === 0 ? (
@@ -153,8 +313,15 @@ const UnitManagement = () => {
                   return (
                   <Card
                     key={unit.id}
-                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col"
+                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col relative"
                   >
+                    <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-md bg-background/90 px-2 py-1 border">
+                      <Checkbox
+                        checked={!!selectedIds[unit.id]}
+                        onCheckedChange={() => toggleSelect(unit.id)}
+                        aria-label={`Select ${unit.name}`}
+                      />
+                    </div>
                     <div className="aspect-video w-full bg-muted shrink-0 overflow-hidden">
                       {unit.image ? (
                         <img

@@ -5,15 +5,39 @@ import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { formatCurrency, formatDate } from '@/lib/paymentUtils';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
+import { downloadLeasePdf } from '@/lib/pdfUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { FileText, Download, Calendar, AlertCircle, CheckCircle, MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/activityLog';
 
 const TenantLeasePage = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [lease, setLease] = useState(null);
+  const [tenantRecord, setTenantRecord] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [requestType, setRequestType] = useState('non_renewal');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchLeaseData();
@@ -21,26 +45,75 @@ const TenantLeasePage = () => {
 
   const fetchLeaseData = async () => {
     try {
-      const tenantRecord = await pb.collection('tenants').getFirstListItem(`user_id = "${currentUser.id}"`, {
-        $autoCancel: false
+      const tr = await pb.collection('tenants').getFirstListItem(`user_id = "${currentUser.id}"`, {
+        $autoCancel: false,
       });
-      
-      const leaseRecord = await pb.collection('leases').getFirstListItem(`tenant_id = "${tenantRecord.id}" && status = "Active"`, {
+      setTenantRecord(tr);
+
+      const leaseRecord = await pb.collection('leases').getFirstListItem(`tenant_id = "${tr.id}" && status = "Active"`, {
         expand: 'unit_id,property_id',
-        $autoCancel: false
+        $autoCancel: false,
       });
-      
+
       setLease(leaseRecord);
     } catch (error) {
       console.error('Error fetching lease data:', error);
-      // It's okay if no active lease is found
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = () => {
-    toast('Lease document download will be available soon.');
+  const handleDownload = async () => {
+    if (!lease) return;
+    try {
+      await downloadLeasePdf(lease, {
+        property_id: lease.expand?.property_id,
+        unit_id: lease.expand?.unit_id,
+        tenant_id: tenantRecord,
+      });
+      toast.success('Lease summary PDF downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not generate PDF');
+    }
+  };
+
+  const submitLeaseRequest = async () => {
+    if (!lease || !tenantRecord) return;
+    setSubmitting(true);
+    try {
+      await pb.collection('lease_requests').create(
+        {
+          lease_id: lease.id,
+          tenant_id: tenantRecord.id,
+          property_id: lease.property_id,
+          request_type: requestType,
+          notes: notes.trim(),
+          status: 'pending',
+        },
+        { $autoCancel: false }
+      );
+      const lid = lease.expand?.property_id?.landlord_id ?? '';
+      await logActivity({
+        user: currentUser,
+        landlordId: lid,
+        action:
+          requestType === 'early_termination'
+            ? 'lease_request.early_termination'
+            : 'lease_request.non_renewal',
+        entity_type: 'lease',
+        entity_id: lease.id,
+        details: notes.trim().slice(0, 200),
+      });
+      toast.success('Your request was sent to the landlord.');
+      setDialogOpen(false);
+      setNotes('');
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.message || 'Could not submit request');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -75,11 +148,61 @@ const TenantLeasePage = () => {
             <h1 className="text-3xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Lease Agreement</h1>
             <p className="text-muted-foreground">Review your current lease terms and status.</p>
           </div>
-          <Button onClick={handleDownload} variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setDialogOpen(true)} variant="default">
+              <MessageSquarePlus className="w-4 h-4 mr-2" />
+              End lease / not renewing
+            </Button>
+            <Button onClick={handleDownload} variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
+            </Button>
+          </div>
         </div>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Notify your landlord</DialogTitle>
+              <DialogDescription>
+                Submit a formal notice: request early termination before the lease end date, or confirm you
+                do not intend to renew when the term ends.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Request type</Label>
+                <Select value={requestType} onValueChange={setRequestType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="non_renewal">I will not renew (end at current term)</SelectItem>
+                    <SelectItem value="early_termination">Early termination (leave before end date)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lr-notes">Message to landlord (optional)</Label>
+                <Textarea
+                  id="lr-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Preferred move-out date, reasons, or questions…"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={submitLeaseRequest} disabled={submitting}>
+                {submitting ? 'Sending…' : 'Submit request'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {isExpiringSoon && (
           <div className="mb-6 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-start space-x-3">

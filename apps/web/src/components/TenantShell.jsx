@@ -78,15 +78,22 @@ const TenantShell = ({ children }) => {
     navigate('/tenant/login');
   };
 
-  const NavLink = ({ to, label, icon: Icon, onClick, condensed }) => {
-    const active = isActive(to);
+  // Same pattern as AppShell (landlord/staff): use path + navigate() so clicks work reliably
+  // (tenantLinks use `path`; `<Link to={undefined}>` breaks navigation).
+  const NavLink = ({ to, path, label, icon: Icon, onNavigate, condensed }) => {
+    const target = to ?? path;
+    const active = isActive(target);
     return (
-      <Link
-        to={to}
+      <button
+        type="button"
+        aria-current={active ? 'page' : undefined}
         title={condensed ? label : undefined}
-        onClick={onClick}
+        onClick={() => {
+          navigate(target);
+          onNavigate?.();
+        }}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
           active
             ? 'bg-accent text-accent-foreground'
             : 'text-foreground/80 hover:bg-muted hover:text-foreground'
@@ -94,7 +101,7 @@ const TenantShell = ({ children }) => {
       >
         <Icon className="h-5 w-5 shrink-0" />
         {!condensed && <span className="truncate">{label}</span>}
-      </Link>
+      </button>
     );
   };
 
@@ -104,7 +111,7 @@ const TenantShell = ({ children }) => {
     return (
       <nav className="flex flex-col gap-1 p-2">
         {tenantLinks.map((item) => (
-          <NavLink key={item.path} {...item} onClick={onNavigate} condensed={condensed} />
+          <NavLink key={item.path} {...item} onNavigate={onNavigate} condensed={condensed} />
         ))}
       </nav>
     );

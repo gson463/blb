@@ -329,6 +329,29 @@ const SmsNotificationsPage = () => {
             </Button>
           </div>
 
+          <Card className="mb-8 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-base">Automated lease-end SMS (Twilio)</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                <strong>How to enable:</strong> open the <strong>Twilio</strong> tab below, enter Account SID, Auth
+                Token, and your Twilio sender number (E.164, e.g. +1234567890), turn on{' '}
+                <strong>Enable SMS</strong>, then save. The server reads these credentials from the database — no
+                server env vars required.
+                <span className="block mt-2">
+                  A daily job (08:00 UTC) sends texts when an active lease ends in <strong>15 days</strong> or{' '}
+                  <strong>5 days</strong>. Recipients use <strong>tenants.phone</strong> and the landlord&apos;s{' '}
+                  <strong>users.phone</strong> (numbers without + are normalized with +255 for Tanzania).
+                </span>
+                <span className="block mt-2 text-muted-foreground">
+                  Optional override: set <code className="text-xs bg-muted px-1 rounded">TWILIO_ACCOUNT_SID</code>,{' '}
+                  <code className="text-xs bg-muted px-1 rounded">TWILIO_AUTH_TOKEN</code>,{' '}
+                  <code className="text-xs bg-muted px-1 rounded">TWILIO_FROM_NUMBER</code> on the host if you prefer
+                  secrets outside the database.
+                </span>
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid w-full grid-cols-4 max-w-2xl">
               <TabsTrigger value="config">Twilio</TabsTrigger>

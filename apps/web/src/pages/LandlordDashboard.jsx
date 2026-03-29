@@ -54,7 +54,10 @@ const LandlordDashboard = () => {
         $autoCancel: false,
       });
       const activityIds = [currentUser.id, ...staffTeam.map((s) => s.id)];
-      const activityFilter = activityIds.map((id) => `user_id = "${id}"`).join(' || ');
+      const activityFilter = [
+        `landlord_id = "${currentUser.id}"`,
+        ...activityIds.map((id) => `user_id = "${id}"`),
+      ].join(' || ');
 
       const [properties, units, tenants, invoices, payments, leases, activities] = await Promise.all([
         pb.collection('properties').getFullList({ filter: `landlord_id = "${currentUser.id}"`, $autoCancel: false }),

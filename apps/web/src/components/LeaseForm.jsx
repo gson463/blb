@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
+import { logActivity } from '@/lib/activityLog';
 
 const LeaseForm = ({ lease, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
@@ -105,12 +106,32 @@ const LeaseForm = ({ lease, onClose, onSuccess }) => {
         status: formData.status
       };
 
+      const lid =
+        currentUser.role === 'landlord'
+          ? currentUser.id
+          : currentUser.employer_id || '';
       if (lease) {
         await pb.collection('leases').update(lease.id, data, { $autoCancel: false });
         toast.success('Lease updated successfully');
+        await logActivity({
+          user: currentUser,
+          landlordId: lid,
+          action: 'lease.updated',
+          entity_type: 'lease',
+          entity_id: lease.id,
+          details: `${formData.start_date} → ${formData.end_date}`,
+        });
       } else {
-        await pb.collection('leases').create(data, { $autoCancel: false });
+        const created = await pb.collection('leases').create(data, { $autoCancel: false });
         toast.success('Lease created successfully');
+        await logActivity({
+          user: currentUser,
+          landlordId: lid,
+          action: 'lease.created',
+          entity_type: 'lease',
+          entity_id: created.id,
+          details: `${formData.start_date} → ${formData.end_date}`,
+        });
       }
 
       onSuccess();

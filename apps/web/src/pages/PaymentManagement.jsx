@@ -20,7 +20,8 @@ import {
 import AppShell from '@/components/AppShell.jsx';
 import PaymentForm from '@/components/PaymentForm.jsx';
 import PaymentApprovalModal from '@/components/PaymentApprovalModal.jsx';
-import { Plus, Search, Download, CheckCircle, XCircle, Clock, FileImage } from 'lucide-react';
+import { Plus, Search, Download, CheckCircle, XCircle, Clock, FileImage, FileDown } from 'lucide-react';
+import { downloadPaymentReceiptPdf } from '@/lib/pdfUtils';
 import { toast } from 'sonner';
 
 const PaymentManagement = () => {
@@ -64,6 +65,21 @@ const PaymentManagement = () => {
   const handleResubmit = (payment) => {
     setSelectedPayment(payment);
     setShowForm(true);
+  };
+
+  const handleDownloadReceipt = async (payment) => {
+    try {
+      await downloadPaymentReceiptPdf(payment, {
+        property_id: payment.expand?.property_id,
+        unit_id: payment.expand?.unit_id,
+        tenant_id: payment.expand?.tenant_id,
+        invoice_id: payment.expand?.invoice_id,
+      });
+      toast.success('Receipt PDF downloaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not generate receipt PDF');
+    }
   };
 
   const handleExport = () => {
@@ -218,14 +234,15 @@ const PaymentManagement = () => {
                           <TableHead>Amount</TableHead>
                           <TableHead>Approved By</TableHead>
                           <TableHead>Approval Date</TableHead>
+                          <TableHead className="text-right">Receipt</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
-                          <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
                         ) : filteredPayments.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                               <CheckCircle className="w-8 h-8 mx-auto mb-3 opacity-50" />
                               No approved payments found
                             </TableCell>
@@ -239,6 +256,17 @@ const PaymentManagement = () => {
                               <TableCell className="font-medium text-secondary">{formatCurrency(payment.amount)}</TableCell>
                               <TableCell>{payment.approved_by || '-'}</TableCell>
                               <TableCell>{formatDate(payment.approval_date)}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDownloadReceipt(payment)}
+                                >
+                                  <FileDown className="w-4 h-4 mr-1" />
+                                  PDF
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}

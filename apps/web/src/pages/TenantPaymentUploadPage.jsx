@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/activityLog';
 
 const TenantPaymentUploadPage = () => {
   const { currentUser } = useAuth();
@@ -32,6 +33,16 @@ const TenantPaymentUploadPage = () => {
   useEffect(() => {
     fetchData();
   }, [currentUser]);
+
+  /** PocketBase nested expand: property id may be string or expanded record */
+  const resolvePropertyId = (tenantRecord) => {
+    const unit = tenantRecord?.expand?.unit_id;
+    if (!unit) return null;
+    const prop = unit.expand?.property_id ?? unit.property_id;
+    if (typeof prop === 'string') return prop;
+    if (prop && typeof prop === 'object' && prop.id) return prop.id;
+    return null;
+  };
 
   const fetchData = async () => {
     try {
@@ -91,30 +102,48 @@ const TenantPaymentUploadPage = () => {
     e.preventDefault();
     if (!validate()) return;
 
+    const propertyId = resolvePropertyId(tenantData);
+    if (!propertyId) {
+      toast.error('Could not resolve your property. Please refresh or contact support.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const data = new FormData();
       data.append('invoice_id', formData.invoice_id);
       data.append('tenant_id', tenantData.id);
       data.append('unit_id', tenantData.unit_id);
-      data.append('property_id', tenantData.expand.unit_id.property_id);
-      data.append('amount', parseFloat(formData.amount));
+      data.append('property_id', propertyId);
+      data.append('amount', String(parseFloat(formData.amount)));
       data.append('payment_date', new Date().toISOString());
       data.append('status', 'Pending Approval');
       data.append('receipt_file', formData.file);
 
-      await pb.collection('payments').create(data, { $autoCancel: false });
-      
-      // Update invoice status to pending
-      await pb.collection('invoices').update(formData.invoice_id, {
-        status: 'Pending Approval'
-      }, { $autoCancel: false });
+      const created = await pb.collection('payments').create(data, { $autoCancel: false });
+      // Invoice → Pending Approval is applied server-side (pb_hooks/payment-sync-invoice.pb.js);
+      const prop = tenantData?.expand?.unit_id?.expand?.property_id;
+      const landlordId =
+        typeof prop === 'object' && prop?.landlord_id ? prop.landlord_id : '';
+      await logActivity({
+        user: currentUser,
+        landlordId,
+        action: 'payment.submitted',
+        entity_type: 'payment',
+        entity_id: created.id,
+        details: `Invoice ${formData.invoice_id}`,
+      });
 
       setSuccess(true);
       toast.success('Payment submitted successfully');
     } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('Failed to submit payment');
+      const msg =
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to submit payment';
+      toast.error(typeof msg === 'string' ? msg : 'Failed to submit payment');
     } finally {
       setSubmitting(false);
     }
@@ -220,7 +249,7 @@ const TenantPaymentUploadPage = () => {
                     <Input
                       id="receipt"
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,.jpg,.jpeg,.png,.webp"
                       onChange={handleFileChange}
                       className="hidden"
                     />

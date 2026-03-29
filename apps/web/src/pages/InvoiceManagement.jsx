@@ -115,9 +115,9 @@ const InvoiceManagement = () => {
     }
   };
 
-  const handleDownloadInvoice = (invoice) => {
+  const handleDownloadInvoice = async (invoice) => {
     try {
-      downloadInvoicePdf(invoice, {
+      await downloadInvoicePdf(invoice, {
         property_id: invoice.expand?.property_id,
         unit_id: invoice.expand?.unit_id,
         tenant_id: invoice.expand?.tenant_id,

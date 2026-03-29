@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PaymentReceiptViewer from './PaymentReceiptViewer.jsx';
 import { toast } from 'sonner';
+import { logActivity } from '@/lib/activityLog';
 import { X, CheckCircle, XCircle } from 'lucide-react';
 
 const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
@@ -45,6 +46,13 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
         }
         
         toast.success('Payment approved successfully');
+        await logActivity({
+          user: currentUser,
+          action: 'payment.approved',
+          entity_type: 'payment',
+          entity_id: payment.id,
+          details: payment.expand?.invoice_id?.invoice_number || payment.id,
+        });
       } else {
         // Reject payment
         await pb.collection('payments').update(payment.id, {
@@ -55,6 +63,13 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
         }, { $autoCancel: false });
         
         toast.success('Payment rejected');
+        await logActivity({
+          user: currentUser,
+          action: 'payment.rejected',
+          entity_type: 'payment',
+          entity_id: payment.id,
+          details: notes?.slice(0, 120) || '',
+        });
       }
 
       onSuccess();

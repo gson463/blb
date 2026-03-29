@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
+import { logActivity } from '@/lib/activityLog';
 
 const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
@@ -67,9 +68,45 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleSelectChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  const handleSelectChange = async (name, value) => {
+    if (name === 'property_id') {
+      setFormData((prev) => ({
+        ...prev,
+        property_id: value,
+        unit_id: '',
+        tenant_id: '',
+        amount: '',
+      }));
+      if (errors.property_id) setErrors((prev) => ({ ...prev, property_id: '' }));
+      return;
+    }
+    if (name === 'unit_id') {
+      const tenant = tenants.find((t) => t.unit_id === value);
+      let amountStr = '';
+      if (tenant?.id) {
+        try {
+          const lease = await pb.collection('leases').getFirstListItem(
+            `tenant_id = "${tenant.id}" && status = "Active"`,
+            { $autoCancel: false }
+          );
+          if (lease?.rent_amount != null) {
+            amountStr = String(lease.rent_amount);
+          }
+        } catch {
+          /* no active lease */
+        }
+      }
+      setFormData((prev) => ({
+        ...prev,
+        unit_id: value,
+        tenant_id: tenant?.id || '',
+        amount: amountStr || prev.amount,
+      }));
+      if (errors.unit_id) setErrors((prev) => ({ ...prev, unit_id: '' }));
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const validate = () => {
@@ -102,10 +139,24 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
       if (invoice) {
         await pb.collection('invoices').update(invoice.id, data, { $autoCancel: false });
         toast.success('Invoice updated successfully');
+        await logActivity({
+          user: currentUser,
+          action: 'invoice.updated',
+          entity_type: 'invoice',
+          entity_id: invoice.id,
+          details: invoice.invoice_number,
+        });
       } else {
         data.invoice_number = generateInvoiceNumber();
-        await pb.collection('invoices').create(data, { $autoCancel: false });
+        const created = await pb.collection('invoices').create(data, { $autoCancel: false });
         toast.success('Invoice created successfully');
+        await logActivity({
+          user: currentUser,
+          action: 'invoice.created',
+          entity_type: 'invoice',
+          entity_id: created.id,
+          details: data.invoice_number,
+        });
       }
 
       onSuccess();

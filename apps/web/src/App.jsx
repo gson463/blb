@@ -49,6 +49,7 @@ import TenantLoginPage from './pages/TenantLoginPage.jsx';
 import SystemConfigurationPage from './pages/SystemConfigurationPage.jsx';
 import TenantGuidePage from './pages/TenantGuidePage.jsx';
 import SmsNotificationsPage from './pages/SmsNotificationsPage.jsx';
+import ActivityLogPage from './pages/ActivityLogPage.jsx';
 
 function App() {
   return (
@@ -158,6 +159,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['landlord']}>
                 <SmsNotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute allowedRoles={['landlord']}>
+                <ActivityLogPage />
               </ProtectedRoute>
             }
           />

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/table';
 import AppShell from '@/components/AppShell.jsx';
 import LeaseForm from '@/components/LeaseForm.jsx';
-import { Plus, FileText, Edit, Trash2, Download } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Download, Inbox } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -42,10 +42,25 @@ const LeaseManagement = () => {
   const pageSize = 50;
   const [showForm, setShowForm] = useState(false);
   const [selectedLease, setSelectedLease] = useState(null);
+  const [pendingLeaseRequests, setPendingLeaseRequests] = useState(0);
 
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const list = await pb.collection('lease_requests').getFullList({
+          filter: `status = "pending" && property_id.landlord_id = "${currentUser.id}"`,
+          $autoCancel: false,
+        });
+        setPendingLeaseRequests(list.length);
+      } catch {
+        setPendingLeaseRequests(0);
+      }
+    })();
+  }, [currentUser?.id]);
 
   useEffect(() => {
     setPage(1);
@@ -105,9 +120,9 @@ const LeaseManagement = () => {
     }
   };
 
-  const handleDownloadLease = (lease) => {
+  const handleDownloadLease = async (lease) => {
     try {
-      downloadLeasePdf(lease, {
+      await downloadLeasePdf(lease, {
         property_id: lease.expand?.property_id,
         unit_id: lease.expand?.unit_id,
         tenant_id: lease.expand?.tenant_id,
@@ -180,6 +195,21 @@ const LeaseManagement = () => {
                 </Button>
               </div>
             </div>
+
+            {pendingLeaseRequests > 0 && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+                <Inbox className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-900 dark:text-amber-100">
+                    {pendingLeaseRequests} tenant lease request{pendingLeaseRequests === 1 ? '' : 's'} pending
+                  </p>
+                  <p className="text-amber-800/90 dark:text-amber-200/90 mt-1">
+                    Tenants have submitted early termination or non-renewal notices. Review them in your records
+                    (lease_requests in PocketBase admin) or follow up with the tenant directly.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {leases.length === 0 ? (
               <Card className="text-center py-12">

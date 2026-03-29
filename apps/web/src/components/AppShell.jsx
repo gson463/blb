@@ -43,6 +43,7 @@ import {
   UserCog,
   ChevronLeft,
   ChevronRight,
+  History,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'blb-app-sidebar-collapsed';
@@ -91,6 +92,11 @@ const AppShell = ({ children }) => {
   }
   if (hasPermission('view_invoices')) {
     navLinks.push({ path: `${basePath}/invoices`, label: 'Invoices', icon: Receipt });
+  }
+
+  if (userRole === 'landlord') {
+    navLinks.push({ path: '/settings', label: 'System configuration', icon: Settings });
+    navLinks.push({ path: '/activity', label: 'Activity log', icon: History });
   }
 
   const paymentBase = userRole === 'staff' ? '/staff/payments' : '/payments';
@@ -458,20 +464,12 @@ const AppShell = ({ children }) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 {userRole === 'landlord' && (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link to="/settings" className="flex cursor-pointer items-center">
-                        <Settings className="mr-2 h-4 w-4" />
-                        System configuration
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/settings/sms" className="flex cursor-pointer items-center">
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        SMS &amp; notifications
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings/sms" className="flex cursor-pointer items-center">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      SMS &amp; notifications
+                    </Link>
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
                   <Link

@@ -1,4 +1,5 @@
 ## Pages
+- [Activity log — BELIBELI](/activitylog): No description available
 - [BELIBELI DIGITAL MANAGER](/home): Choose how to sign in: owner & staff, or tenant.
 - [Dashboard - BELIBELI DIGITAL MANAGER](/landlorddashboard): Manage your properties, tenants, and rental operations from your dashboard.
 - [How to use the tenant portal — BELIBELI](/tenantguide): Instructions for using the BELIBELI tenant portal: invoices, payments, and your lease.

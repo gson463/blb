@@ -185,7 +185,7 @@ const TenantDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-border/50 bg-primary/5 border-primary/20">
+          <Card className="shadow-sm bg-primary/5 border-primary/20">
             <CardContent className="p-6 flex flex-col justify-center h-full">
               <Button asChild className="w-full mb-2">
                 <Link to="/tenant/upload-payment">

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppShell from '@/components/AppShell.jsx';
 import UnitForm from '@/components/UnitForm.jsx';
-import { Plus, Home, Edit, Trash2 } from 'lucide-react';
+import { Plus, Home, Edit, Trash2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/paymentUtils';
 
@@ -147,25 +147,47 @@ const UnitManagement = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredUnits.map((unit) => (
-                  <Card key={unit.id} className="shadow-lg hover:shadow-xl transition-shadow duration-200">
-                    {unit.image && (
-                      <div className="aspect-video w-full overflow-hidden rounded-t-xl">
+                {filteredUnits.map((unit) => {
+                  const property = unit.expand?.property_id;
+                  const locationLine = property?.location?.trim() || '';
+                  return (
+                  <Card
+                    key={unit.id}
+                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col"
+                  >
+                    <div className="aspect-video w-full bg-muted shrink-0 overflow-hidden">
+                      {unit.image ? (
                         <img
                           src={pb.files.getUrl(unit, unit.image)}
                           alt={unit.name}
                           className="w-full h-full object-cover"
                         />
-                      </div>
-                    )}
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-xl">{unit.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{unit.expand?.property_id?.name}</p>
+                      ) : (
+                        <div className="w-full h-full min-h-[140px] flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/15 via-muted to-muted text-muted-foreground px-4">
+                          <Home className="w-14 h-14 opacity-40" strokeWidth={1.25} />
+                          <span className="text-xs font-medium text-center">No photo yet — add one when editing</span>
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-xl leading-tight">{unit.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {property?.name || '—'}
+                          </p>
+                          <div
+                            className="flex items-start gap-2 text-sm text-muted-foreground pt-2 border-t border-border/60 mt-3"
+                            title={locationLine || undefined}
+                          >
+                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" aria-hidden />
+                            <span className="leading-snug line-clamp-3 break-words">
+                              {locationLine || 'Location not set'}
+                            </span>
+                          </div>
                         </div>
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-lg ${
+                          className={`shrink-0 px-2 py-1 text-xs font-medium rounded-lg ${
                             unit.status === 'Vacant'
                               ? 'bg-secondary/10 text-secondary'
                               : 'bg-accent/10 text-accent'
@@ -208,7 +230,8 @@ const UnitManagement = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

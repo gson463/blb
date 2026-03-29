@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppShell from '@/components/AppShell.jsx';
 import PropertyForm from '@/components/PropertyForm.jsx';
-import { Plus, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Edit, Trash2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PropertyManagement = () => {
@@ -111,21 +111,34 @@ const PropertyManagement = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {properties.map((property) => (
-                  <Card key={property.id} className="shadow-lg hover:shadow-xl transition-shadow duration-200">
-                    {property.image && (
-                      <div className="aspect-video w-full overflow-hidden rounded-t-xl">
+                  <Card
+                    key={property.id}
+                    className="shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden flex flex-col"
+                  >
+                    <div className="aspect-video w-full bg-muted shrink-0 overflow-hidden">
+                      {property.image ? (
                         <img
                           src={pb.files.getUrl(property, property.image)}
                           alt={property.name}
                           className="w-full h-full object-cover"
                         />
-                      </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="text-xl">{property.name}</CardTitle>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        {property.location}
+                      ) : (
+                        <div className="w-full h-full min-h-[140px] flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/15 via-muted to-muted text-muted-foreground px-4">
+                          <Building2 className="w-14 h-14 opacity-40" strokeWidth={1.25} />
+                          <span className="text-xs font-medium">No photo yet — add one when editing</span>
+                        </div>
+                      )}
+                    </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xl leading-tight">{property.name}</CardTitle>
+                      <div
+                        className="flex items-start gap-2 text-sm text-muted-foreground pt-2 border-t border-border/60 mt-3"
+                        title={property.location?.trim() || undefined}
+                      >
+                        <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary" aria-hidden />
+                        <span className="leading-snug line-clamp-3 break-words">
+                          {property.location?.trim() ? property.location.trim() : 'Location not set'}
+                        </span>
                       </div>
                     </CardHeader>
                     <CardContent>

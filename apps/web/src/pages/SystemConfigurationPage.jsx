@@ -26,6 +26,7 @@ const SystemConfigurationPage = () => {
     tenant_guide: '',
     invoice_footer_text: '',
     receipt_footer_text: '',
+    lease_general_agreements: '',
   });
 
   useEffect(() => {
@@ -42,6 +43,7 @@ const SystemConfigurationPage = () => {
             tenant_guide: row.tenant_guide ?? '',
             invoice_footer_text: row.invoice_footer_text ?? '',
             receipt_footer_text: row.receipt_footer_text ?? '',
+            lease_general_agreements: row.lease_general_agreements ?? '',
           });
           if (row.logo) {
             setLogoPreview(pb.files.getUrl(row, row.logo));
@@ -84,6 +86,7 @@ const SystemConfigurationPage = () => {
       fd.append('system_name', form.system_name.trim());
       fd.append('invoice_footer_text', form.invoice_footer_text);
       fd.append('receipt_footer_text', form.receipt_footer_text);
+      fd.append('lease_general_agreements', form.lease_general_agreements);
       if (logoFile) {
         fd.append('logo', logoFile);
       }
@@ -118,8 +121,8 @@ const SystemConfigurationPage = () => {
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">System configuration</h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Branding is used on downloaded invoices and payment receipts. Public contact details appear in
-              the site footer. The tenant guide is shown on the &quot;How to use&quot; page.
+              Branding is used on downloaded invoices, receipts, and lease PDFs. Public contact details appear
+              in the site footer. The tenant guide is shown on the &quot;How to use&quot; page.
             </p>
           </div>
 
@@ -182,6 +185,24 @@ const SystemConfigurationPage = () => {
                       rows={3}
                       placeholder="Leave blank to reuse invoice footer text on payment receipts."
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lease_general_agreements">Lease PDF — general agreements (all leases)</Label>
+                    <Textarea
+                      id="lease_general_agreements"
+                      name="lease_general_agreements"
+                      value={form.lease_general_agreements}
+                      onChange={handleChange}
+                      rows={10}
+                      className="font-mono text-sm min-h-[200px]"
+                      placeholder={
+                        'Each block of text separated by a blank line becomes a numbered clause on every lease summary PDF.\n\nExample:\n\nRent is due on the 1st of each month.\n\nNo subletting without written consent.'
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Shown on every downloaded lease summary. Use a blank line between clauses. The landlord
+                      name uses &quot;Landlord contact&quot; / system name above.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

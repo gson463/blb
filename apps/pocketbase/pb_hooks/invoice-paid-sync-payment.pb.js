@@ -23,6 +23,23 @@ function dateAtNoonEATFromStored(raw) {
 }
 
 /**
+ * Read YYYY-MM-DD from a DateField. getString() is often empty for date fields in hooks;
+ * getDateTime() is reliable.
+ */
+function pendingLeaseYmd(record, fieldName) {
+  try {
+    const dt = record.getDateTime(fieldName);
+    if (dt && !dt.isZero()) {
+      const s = dt.string();
+      if (s && s.length >= 10) return s.slice(0, 10);
+    }
+  } catch (_) {}
+  const gs = record.getString(fieldName);
+  if (gs && gs.length >= 10) return gs.slice(0, 10);
+  return '';
+}
+
+/**
  * When the first invoice is marked Paid, create an Active lease from tenant.pending_lease_* and clear those fields.
  */
 function syncLeaseFromPendingTenant(invoice) {
@@ -38,8 +55,8 @@ function syncLeaseFromPendingTenant(invoice) {
     return;
   }
 
-  const pendingStart = tenant.getString('pending_lease_start');
-  const pendingEnd = tenant.getString('pending_lease_end');
+  const pendingStart = pendingLeaseYmd(tenant, 'pending_lease_start');
+  const pendingEnd = pendingLeaseYmd(tenant, 'pending_lease_end');
   if (!pendingStart || !pendingEnd) return;
 
   const existing = $app.findRecordsByFilter(
@@ -134,12 +151,45 @@ function syncPaymentForPaidInvoice(invoice) {
 function runInvoicePaidSync(e) {
   try {
     syncPaymentForPaidInvoice(e.record);
+  } catch (err) {
+    $app.logger().error('invoice-paid-sync-payment (payments): ' + String(err), 'error');
+  }
+  try {
     syncLeaseFromPendingTenant(e.record);
   } catch (err) {
-    $app.logger().error('invoice-paid-sync-payment: ' + String(err), 'error');
+    $app.logger().error('invoice-paid-sync-payment (lease): ' + String(err), 'error');
+  }
+  e.next();
+}
+
+/**
+ * Backup: after payment is Approved, if invoice is already Paid, create lease.
+ * Covers ordering edge cases; safe if lease already created (pending cleared).
+ */
+function runPaymentApprovedLeaseSync(e) {
+  try {
+    const st = e.record.getString('status');
+    if (st !== 'Approved' && st !== 'approved') {
+      e.next();
+      return;
+    }
+    const invoiceId = e.record.getString('invoice_id');
+    if (!invoiceId) {
+      e.next();
+      return;
+    }
+    const invoice = $app.findRecordById('invoices', invoiceId);
+    if (invoice.getString('status') !== 'Paid') {
+      e.next();
+      return;
+    }
+    syncLeaseFromPendingTenant(invoice);
+  } catch (err) {
+    $app.logger().error('payment-approved-lease-sync: ' + String(err), 'error');
   }
   e.next();
 }
 
 onRecordAfterCreateSuccess(runInvoicePaidSync, 'invoices');
 onRecordAfterUpdateSuccess(runInvoicePaidSync, 'invoices');
+onRecordAfterUpdateSuccess(runPaymentApprovedLeaseSync, 'payments');

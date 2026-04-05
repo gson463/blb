@@ -66,7 +66,10 @@ const UnitManagement = () => {
 
   const handleEdit = async (unit) => {
     try {
-      const fresh = await pb.collection('units').getOne(unit.id, { $autoCancel: false });
+      const fresh = await pb.collection('units').getOne(unit.id, {
+        expand: 'property_id',
+        $autoCancel: false,
+      });
       setSelectedUnit(fresh);
     } catch (e) {
       console.error(e);

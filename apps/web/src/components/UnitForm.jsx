@@ -10,66 +10,88 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 
-const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
-  const { currentUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [properties, setProperties] = useState([]);
-  const [formData, setFormData] = useState({
+/** Relation field can be id string or expanded object depending on API response shape */
+function normalizePropertyId(u) {
+  if (!u) return '';
+  const pid = u.property_id;
+  if (typeof pid === 'string') return pid;
+  if (pid && typeof pid === 'object' && pid.id) return pid.id;
+  return '';
+}
+
+function buildFormDataFromUnit(unit, propertyId) {
+  if (unit) {
+    const rent =
+      unit.rent_amount != null && unit.rent_amount !== ''
+        ? String(unit.rent_amount)
+        : '';
+    const ppm =
+      unit.payment_period_months != null && unit.payment_period_months !== ''
+        ? String(unit.payment_period_months)
+        : '12';
+    return {
+      property_id: normalizePropertyId(unit) || propertyId || '',
+      name: unit.name ?? '',
+      type: unit.type || 'Apartment',
+      rent_amount: rent,
+      payment_period_months: ppm,
+      status: unit.status || 'Vacant',
+      image: null,
+    };
+  }
+  return {
     property_id: propertyId || '',
     name: '',
     type: 'Apartment',
     rent_amount: '',
     payment_period_months: '12',
     status: 'Vacant',
-    image: null
-  });
+    image: null,
+  };
+}
+
+const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [formData, setFormData] = useState(() => buildFormDataFromUnit(unit, propertyId));
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    fetchProperties();
-    if (unit) {
-      const rent =
-        unit.rent_amount != null && unit.rent_amount !== ''
-          ? String(unit.rent_amount)
-          : '';
-      const ppm =
-        unit.payment_period_months != null && unit.payment_period_months !== ''
-          ? String(unit.payment_period_months)
-          : '12';
-      setFormData({
-        property_id: unit.property_id || propertyId || '',
-        name: unit.name ?? '',
-        type: unit.type || 'Apartment',
-        rent_amount: rent,
-        payment_period_months: ppm,
-        status: unit.status || 'Vacant',
-        image: null,
-      });
-    } else {
-      setFormData({
-        property_id: propertyId || '',
-        name: '',
-        type: 'Apartment',
-        rent_amount: '',
-        payment_period_months: '12',
-        status: 'Vacant',
-        image: null,
-      });
-    }
+    setFormData(buildFormDataFromUnit(unit, propertyId));
     setErrors({});
   }, [unit, propertyId]);
 
-  const fetchProperties = async () => {
-    try {
-      const records = await pb.collection('properties').getFullList({
-        filter: buildPropertiesFilter(currentUser),
-        $autoCancel: false
-      });
-      setProperties(records);
-    } catch (error) {
-      console.error('Error fetching properties:', error);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const records = await pb.collection('properties').getFullList({
+          filter: buildPropertiesFilter(currentUser),
+          $autoCancel: false,
+        });
+        const pid = normalizePropertyId(unit);
+        if (pid && !records.some((p) => p.id === pid)) {
+          const ex = unit?.expand?.property_id;
+          if (ex && typeof ex === 'object' && ex.id) {
+            setProperties([{ id: ex.id, name: ex.name || 'Property' }, ...records]);
+            return;
+          }
+          try {
+            const extra = await pb.collection('properties').getOne(pid, { $autoCancel: false });
+            setProperties([extra, ...records]);
+            return;
+          } catch (_) {
+            setProperties([{ id: pid, name: 'Current property' }, ...records]);
+            return;
+          }
+        }
+        setProperties(records);
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+      }
+    };
+    load();
+  }, [currentUser, unit]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;

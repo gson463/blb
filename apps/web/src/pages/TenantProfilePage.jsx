@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { UserCircle, Mail, Phone, MapPin, Shield, Bell, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getIdTypeLabel, getIdNumberFieldLabel } from '@/lib/tanzaniaId';
 
 const NOTIF_FREQ = ['immediate', 'daily', 'weekly'];
 
@@ -228,14 +229,20 @@ const TenantProfilePage = () => {
                   <p className="font-medium">{tenantData?.name || currentUser.name || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">ID number</p>
-                  <p className="font-medium">{tenantData?.id_number || '-'}</p>
-                </div>
-                <div>
                   <p className="text-sm text-muted-foreground mb-1 flex items-center">
                     <Mail className="w-3.5 h-3.5 mr-1" /> Email
                   </p>
                   <p className="font-medium">{tenantData?.email || currentUser.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">ID type</p>
+                  <p className="font-medium">{getIdTypeLabel(tenantData?.id_type)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {getIdNumberFieldLabel(tenantData?.id_type)}
+                  </p>
+                  <p className="font-medium">{tenantData?.id_number || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1 flex items-center">

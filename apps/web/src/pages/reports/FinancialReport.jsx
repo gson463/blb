@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { getPropertyWiseBreakdown, getMonthlyRevenueTrend } from '@/lib/reportUtils';
 import { exportToCSV, exportToPDF } from '@/lib/exportUtils';
 import { buildPropertiesFilter } from '@/lib/staffDataScope';
@@ -128,25 +128,25 @@ const FinancialReport = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <Card className="bg-muted/30 border-border/50">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xl font-bold">{formatCurrency(totals.invoiced)}</p>
+                  <AmountText value={totals.invoiced} className="text-xl font-bold" />
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">Total Invoiced</p>
                 </CardContent>
               </Card>
               <Card className="bg-secondary/5 border-secondary/20">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xl font-bold text-secondary">{formatCurrency(totals.collected)}</p>
+                  <AmountText value={totals.collected} className="text-xl font-bold" />
                   <p className="text-xs text-secondary/80 uppercase tracking-wider mt-1">Collected</p>
                 </CardContent>
               </Card>
               <Card className="bg-accent/5 border-accent/20">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xl font-bold text-accent">{formatCurrency(totals.pending)}</p>
+                  <AmountText value={totals.pending} className="text-xl font-bold" />
                   <p className="text-xs text-accent/80 uppercase tracking-wider mt-1">Pending</p>
                 </CardContent>
               </Card>
               <Card className="bg-destructive/5 border-destructive/20">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xl font-bold text-destructive">{formatCurrency(totals.unpaid)}</p>
+                  <AmountText value={totals.unpaid} className="text-xl font-bold" />
                   <p className="text-xs text-destructive/80 uppercase tracking-wider mt-1">Unpaid</p>
                 </CardContent>
               </Card>
@@ -219,10 +219,18 @@ const FinancialReport = () => {
                         <TableRow key={prop.id}>
                           <TableCell className="font-medium">{prop.name}</TableCell>
                           <TableCell className="text-right">{prop.totalUnits}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(prop.totalInvoiced)}</TableCell>
-                          <TableCell className="text-right text-secondary font-medium">{formatCurrency(prop.totalCollected)}</TableCell>
-                          <TableCell className="text-right text-accent">{formatCurrency(prop.totalPending)}</TableCell>
-                          <TableCell className="text-right text-destructive">{formatCurrency(prop.totalUnpaid)}</TableCell>
+                          <TableCell className="text-right">
+                            <AmountText value={prop.totalInvoiced} />
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            <AmountText value={prop.totalCollected} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <AmountText value={prop.totalPending} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <AmountText value={prop.totalUnpaid} />
+                          </TableCell>
                           <TableCell className="text-right">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                               prop.collectionRate >= 90 ? 'bg-secondary/10 text-secondary' :

@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThemeDropdownSection } from '@/components/ThemeDropdownSection.jsx';
 import {
   Sheet,
   SheetContent,
@@ -32,6 +33,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  Palette,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'blb-tenant-sidebar-collapsed';
@@ -135,7 +137,24 @@ const TenantShell = ({ children }) => {
             </Link>
           </div>
           <div className="flex-1 overflow-y-auto py-2">{renderNavBody()}</div>
-          <div className="border-t border-border p-2">
+          <div className="border-t border-border p-2 space-y-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn('w-full', collapsed ? 'justify-center px-0' : 'justify-start gap-2')}
+                  aria-label="Theme"
+                  title={collapsed ? 'Theme' : undefined}
+                >
+                  <Palette className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span className="text-sm">Theme</span>}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start" className="w-56">
+                <ThemeDropdownSection />
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="sm"
@@ -175,6 +194,19 @@ const TenantShell = ({ children }) => {
                 <div className="overflow-y-auto py-2">
                   {renderNavBody(() => setMobileOpen(false), 'mobile')}
                 </div>
+                <div className="border-t border-border p-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start" aria-label="Theme">
+                        <Palette className="mr-2 h-4 w-4" />
+                        Theme
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                      <ThemeDropdownSection />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </SheetContent>
             </Sheet>
 
@@ -208,7 +240,7 @@ const TenantShell = ({ children }) => {
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild>
                   <Link to="/tenant/profile" className="flex cursor-pointer items-center">
                     <UserCircle className="mr-2 h-4 w-4" />

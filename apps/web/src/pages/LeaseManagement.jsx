@@ -10,7 +10,7 @@ import {
 } from '@/lib/staffDataScope';
 import { downloadLeasePdf } from '@/lib/pdfUtils';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
-import { formatCurrency } from '@/lib/invoiceUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -265,7 +265,9 @@ const LeaseManagement = () => {
                                 {new Date(lease.end_date).toLocaleDateString()}
                               </div>
                             </TableCell>
-                            <TableCell>{formatCurrency(lease.rent_amount)}</TableCell>
+                            <TableCell>
+                            <AmountText value={lease.rent_amount} />
+                          </TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 text-xs font-medium rounded-lg ${
                                 lease.status === 'Active' ? 'bg-secondary/10 text-secondary' :

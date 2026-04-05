@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import AppShell from '@/components/AppShell.jsx';
@@ -307,7 +308,7 @@ const StaffDashboard = () => {
         >
           <CardContent className="p-6">
             <p className="text-sm font-medium text-secondary/80 uppercase tracking-wider mb-2">Collected This Month</p>
-            <h3 className="text-3xl font-bold text-secondary">{formatCurrency(stats?.collectedThisMonth)}</h3>
+            <AmountText value={stats?.collectedThisMonth} className="text-3xl font-bold" />
           </CardContent>
         </Card>
         <Card
@@ -325,7 +326,7 @@ const StaffDashboard = () => {
         >
           <CardContent className="p-6">
             <p className="text-sm font-medium text-destructive/80 uppercase tracking-wider mb-2">Outstanding Arrears</p>
-            <h3 className="text-3xl font-bold text-destructive">{formatCurrency(stats?.unpaidAmount)}</h3>
+            <AmountText value={stats?.unpaidAmount} className="text-3xl font-bold" />
             <p className="text-sm text-destructive/70 mt-1">Across {stats?.unpaidInvoicesCount} invoices</p>
           </CardContent>
         </Card>
@@ -418,7 +419,7 @@ const StaffDashboard = () => {
           <CardContent>
             <div className="text-3xl font-bold mb-1">{stats?.unpaidInvoicesCount}</div>
             <p className="text-sm text-muted-foreground mb-4">Unpaid invoices in your properties</p>
-            <div className="text-xl font-semibold text-destructive mb-4">{formatCurrency(stats?.unpaidAmount)}</div>
+            <AmountText value={stats?.unpaidAmount} className="text-xl font-semibold mb-4" />
             <p className="text-sm font-medium text-primary">View arrears list →</p>
           </CardContent>
         </Card>
@@ -443,7 +444,7 @@ const StaffDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-1">{formatCurrency(stats?.collectedThisMonth)}</div>
+            <AmountText value={stats?.collectedThisMonth} className="text-3xl font-bold mb-1" />
             <p className="text-sm text-muted-foreground mb-6">Collected this month</p>
             <p className="text-sm font-medium text-primary">Record or review payments →</p>
           </CardContent>

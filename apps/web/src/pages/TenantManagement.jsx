@@ -20,7 +20,7 @@ import AppShell from '@/components/AppShell.jsx';
 import TenantForm from '@/components/TenantForm.jsx';
 import { Plus, Users, Edit, Trash2, Mail, Phone, Home, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 
 const TenantManagement = () => {
   const { currentUser } = useAuth();
@@ -230,7 +230,7 @@ const TenantManagement = () => {
                             <td className="px-3 py-2">{u.expand?.property_id?.name || '—'}</td>
                             <td className="px-3 py-2 font-medium">{u.name}</td>
                             <td className="px-3 py-2">
-                              {u.rent_amount != null ? formatCurrency(u.rent_amount) : '—'}
+                              {u.rent_amount != null ? <AmountText value={u.rent_amount} /> : '—'}
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">{u.availabilityLabel}</td>
                           </tr>

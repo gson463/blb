@@ -338,8 +338,9 @@ const SmsNotificationsPage = () => {
                 <strong>Enable SMS</strong>, then save. The server reads these credentials from the database — no
                 server env vars required.
                 <span className="block mt-2">
-                  A daily job (08:00 UTC) sends texts when an active lease ends in <strong>15 days</strong> or{' '}
-                  <strong>5 days</strong>. Recipients use <strong>tenants.phone</strong> and the landlord&apos;s{' '}
+                  A daily job runs at <strong>11:00 EAT</strong> (08:00 UTC) and sends texts when an active lease
+                  ends in <strong>15 days</strong> or <strong>5 days</strong>. Recipients use{' '}
+                  <strong>tenants.phone</strong> and the landlord&apos;s{' '}
                   <strong>users.phone</strong> (numbers without + are normalized with +255 for Tanzania).
                 </span>
                 <span className="block mt-2 text-muted-foreground">

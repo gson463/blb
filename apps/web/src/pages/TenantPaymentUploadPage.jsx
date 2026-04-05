@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
+import { nowIsoEAT } from '@/lib/datetimeEAT';
 import { formatCurrency } from '@/lib/paymentUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,7 +117,7 @@ const TenantPaymentUploadPage = () => {
       data.append('unit_id', tenantData.unit_id);
       data.append('property_id', propertyId);
       data.append('amount', String(parseFloat(formData.amount)));
-      data.append('payment_date', new Date().toISOString());
+      data.append('payment_date', nowIsoEAT());
       data.append('status', 'Pending Approval');
       data.append('receipt_file', formData.file);
 
@@ -219,7 +220,9 @@ const TenantPaymentUploadPage = () => {
                     <SelectContent>
                       {unpaidInvoices.map(inv => (
                         <SelectItem key={inv.id} value={inv.id}>
-                          {inv.invoice_number} - {formatCurrency(inv.amount)}
+                          <span className="text-amount">
+                            {inv.invoice_number} - {formatCurrency(inv.amount)}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

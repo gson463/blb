@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { getPropertyWiseBreakdown } from '@/lib/reportUtils';
 import { exportToCSV, exportToPDF } from '@/lib/exportUtils';
 import { buildPropertiesFilter } from '@/lib/staffDataScope';
@@ -136,7 +136,7 @@ const PropertyReport = () => {
               </Card>
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(totals.rent)}</p>
+                  <AmountText value={totals.rent} className="text-2xl font-bold" />
                   <p className="text-xs text-primary/80 uppercase tracking-wider mt-1">Potential Rent</p>
                 </CardContent>
               </Card>

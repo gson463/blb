@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency, formatDate } from '@/lib/paymentUtils';
+import { formatDate } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { calculateLeaseExpiryStats, getLeaseStatusBreakdown } from '@/lib/reportUtils';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
 import { exportToCSV, exportToPDF } from '@/lib/exportUtils';
@@ -235,7 +236,9 @@ const LeaseReport = () => {
                             </TableCell>
                             <TableCell>{formatDate(lease.start_date)}</TableCell>
                             <TableCell className={isUrgent ? 'text-destructive font-medium' : ''}>{formatDate(lease.end_date)}</TableCell>
-                            <TableCell className="text-right font-bold">{formatCurrency(lease.rent_amount)}</TableCell>
+                            <TableCell className="text-right font-bold">
+                            <AmountText value={lease.rent_amount} className="font-bold" />
+                          </TableCell>
                             <TableCell>
                               <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                                 isExpired ? 'bg-muted text-muted-foreground' :

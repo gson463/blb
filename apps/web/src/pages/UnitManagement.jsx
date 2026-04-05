@@ -13,7 +13,7 @@ import AppShell from '@/components/AppShell.jsx';
 import UnitForm from '@/components/UnitForm.jsx';
 import { Plus, Home, Edit, Trash2, MapPin, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 
 const UNIT_TYPES = new Set(['House', 'Apartment', 'Room', 'Shop', 'Plot', 'Office']);
 const UNIT_STATUSES = new Set(['Vacant', 'Occupied']);
@@ -64,8 +64,14 @@ const UnitManagement = () => {
     fetchUnits();
   }, [currentUser?.id, fetchProperties, fetchUnits]);
 
-  const handleEdit = (unit) => {
-    setSelectedUnit(unit);
+  const handleEdit = async (unit) => {
+    try {
+      const fresh = await pb.collection('units').getOne(unit.id, { $autoCancel: false });
+      setSelectedUnit(fresh);
+    } catch (e) {
+      console.error(e);
+      setSelectedUnit(unit);
+    }
     setShowForm(true);
   };
 
@@ -136,6 +142,7 @@ const UnitManagement = () => {
         name: 'Unit A',
         type: 'Apartment',
         rent_amount: '1200',
+        payment_period_months: '12',
         status: 'Vacant',
       },
     ]);
@@ -178,12 +185,16 @@ const UnitManagement = () => {
       if (!UNIT_TYPES.has(type)) type = 'Apartment';
       let status = row.status?.trim() || 'Vacant';
       if (!UNIT_STATUSES.has(status)) status = 'Vacant';
+      const ppmRaw = parseInt(String(row.payment_period_months ?? '').trim(), 10);
+      const paymentPeriodMonths =
+        Number.isFinite(ppmRaw) && ppmRaw >= 1 && ppmRaw <= 120 ? ppmRaw : 12;
       try {
         const fd = new FormData();
         fd.append('property_id', propId);
         fd.append('name', name);
         fd.append('type', type);
         fd.append('rent_amount', String(rent));
+        fd.append('payment_period_months', String(paymentPeriodMonths));
         fd.append('status', status);
         await pb.collection('units').create(fd, { $autoCancel: false });
         ok++;
@@ -243,7 +254,12 @@ const UnitManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button onClick={() => setShowForm(true)}>
+                  <Button
+                    onClick={() => {
+                      setSelectedUnit(null);
+                      setShowForm(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Unit
                   </Button>
@@ -299,7 +315,12 @@ const UnitManagement = () => {
                   </div>
                   <h3 className="text-lg font-semibold mb-2">No units yet</h3>
                   <p className="text-muted-foreground mb-4">Create your first unit to get started</p>
-                  <Button onClick={() => setShowForm(true)}>
+                  <Button
+                    onClick={() => {
+                      setSelectedUnit(null);
+                      setShowForm(true);
+                    }}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Unit
                   </Button>
@@ -371,8 +392,12 @@ const UnitManagement = () => {
                           <span className="font-medium">{unit.type}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Rent:</span>
-                          <span className="font-medium">{formatCurrency(unit.rent_amount)}</span>
+                          <span className="text-muted-foreground">Rent/Month:</span>
+                          <AmountText value={unit.rent_amount} className="font-medium" />
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Payment period:</span>
+                          <span className="font-medium">{unit.payment_period_months ?? 12} mo</span>
                         </div>
                       </div>
                       <div className="flex space-x-2">
@@ -407,6 +432,7 @@ const UnitManagement = () => {
 
       {showForm && (
         <UnitForm
+          key={selectedUnit?.id ?? 'new-unit'}
           unit={selectedUnit}
           onClose={handleFormClose}
           onSuccess={fetchUnits}

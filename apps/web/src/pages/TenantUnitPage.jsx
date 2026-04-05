@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Home, MapPin, Building2, Phone, Mail, Info } from 'lucide-react';
 import { toast } from 'sonner';
@@ -93,7 +93,7 @@ const TenantUnitPage = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-primary">{formatCurrency(unitData.rent_amount)}</div>
+                    <AmountText value={unitData.rent_amount} className="text-2xl font-bold" />
                     <p className="text-xs text-muted-foreground">per month</p>
                   </div>
                 </div>

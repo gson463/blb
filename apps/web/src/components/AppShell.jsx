@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThemeDropdownSection } from '@/components/ThemeDropdownSection.jsx';
 import {
   Collapsible,
   CollapsibleContent,
@@ -502,6 +503,7 @@ const AppShell = ({ children }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                <ThemeDropdownSection />
                 {userRole === 'landlord' && (
                   <DropdownMenuItem asChild>
                     <Link to="/settings/sms" className="flex cursor-pointer items-center">

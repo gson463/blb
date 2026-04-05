@@ -1,6 +1,6 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
- * Daily 08:00 UTC: Twilio SMS when an active lease ends in 15 or 5 days.
+ * Daily 08:00 UTC (11:00 EAT): Twilio SMS when an active lease ends in 15 or 5 days (dates vs “today” use EAT).
  *
  * Credentials (first match wins):
  * 1) Environment: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
@@ -78,16 +78,26 @@ cronAdd('lease-expiry-sms', '0 8 * * *', () => {
     }
   }
 
+  function todayDateStringEAT() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
+  }
+
+  /** Calendar days from today (EAT) to lease end date (same calendar convention as stored dates). */
+  function daysUntilLeaseEndEAT(endRaw) {
+    const endDay = String(endRaw).slice(0, 10);
+    const today = todayDateStringEAT();
+    const t0 = new Date(today + 'T12:00:00+03:00');
+    const t1 = new Date(endDay + 'T12:00:00+03:00');
+    return Math.round((t1 - t0) / 86400000);
+  }
+
   const leases = $app.findRecordsByFilter('leases', 'status = "Active"', 'end_date', 500, 0);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   for (const lease of leases) {
     if (!lease) continue;
     const endRaw = lease.getString('end_date');
     if (!endRaw) continue;
-    const end = new Date(endRaw.split(' ')[0] + 'T12:00:00Z');
-    const days = Math.round((end - startOfToday) / 86400000);
+    const days = daysUntilLeaseEndEAT(endRaw);
     if (days !== 15 && days !== 5) continue;
 
     const kind = days === 15 ? '15d' : '5d';

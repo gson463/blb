@@ -5,7 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
-import { getOverdueInvoices, formatCurrency } from '@/lib/invoiceUtils';
+import { getOverdueInvoices } from '@/lib/invoiceUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppShell from '@/components/AppShell.jsx';
@@ -282,7 +283,7 @@ const LandlordDashboard = () => {
                   <DollarSign className="w-5 h-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">{formatCurrency(stats.totalMonthlyRent)}</div>
+                  <AmountText value={stats.totalMonthlyRent} className="text-3xl font-bold" />
                 </CardContent>
               </Card>
             </div>
@@ -304,7 +305,7 @@ const LandlordDashboard = () => {
               >
                 <CardContent className="p-4">
                   <p className="text-sm text-muted-foreground mb-1">Approved This Month</p>
-                  <p className="text-2xl font-bold text-secondary">{formatCurrency(paymentStats.approvedThisMonth)}</p>
+                  <AmountText value={paymentStats.approvedThisMonth} className="text-2xl font-bold" />
                 </CardContent>
               </Card>
               <Card
@@ -383,7 +384,7 @@ const LandlordDashboard = () => {
                               <p className="text-xs text-muted-foreground">{new Date(payment.payment_date).toLocaleDateString()}</p>
                             </div>
                             <div className="flex items-center space-x-4">
-                              <span className="font-semibold">{formatCurrency(payment.amount)}</span>
+                              <AmountText value={payment.amount} className="font-semibold" />
                               <Button size="sm" asChild>
                                 <Link to="/payments">Review</Link>
                               </Button>
@@ -420,7 +421,7 @@ const LandlordDashboard = () => {
                               <p className="font-medium text-sm">{invoice.expand?.tenant_id?.name}</p>
                               <p className="text-xs text-destructive">Due: {new Date(invoice.due_date).toLocaleDateString()}</p>
                             </div>
-                            <span className="font-semibold text-destructive">{formatCurrency(invoice.amount)}</span>
+                            <AmountText value={invoice.amount} className="font-semibold" />
                           </div>
                         ))}
                       </div>

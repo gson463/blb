@@ -4,7 +4,9 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { buildPaymentsFilter } from '@/lib/staffDataScope';
-import { formatCurrency, generatePaymentReport, formatDate } from '@/lib/paymentUtils';
+import { generatePaymentReport, formatDate } from '@/lib/paymentUtils';
+import { todayDateStringEAT } from '@/lib/datetimeEAT';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -89,7 +91,7 @@ const PaymentManagement = () => {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `payments_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `payments_export_${todayDateStringEAT()}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -198,7 +200,9 @@ const PaymentManagement = () => {
                                 <div className="text-xs text-muted-foreground">{payment.expand?.unit_id?.name}</div>
                               </TableCell>
                               <TableCell>{payment.expand?.invoice_id?.invoice_number}</TableCell>
-                              <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell className="font-medium">
+                                <AmountText value={payment.amount} />
+                              </TableCell>
                               <TableCell>
                                 {payment.receipt_file ? (
                                   <div className="flex items-center text-sm text-primary">
@@ -253,7 +257,9 @@ const PaymentManagement = () => {
                               <TableCell>{formatDate(payment.payment_date)}</TableCell>
                               <TableCell className="font-medium">{payment.expand?.tenant_id?.name}</TableCell>
                               <TableCell>{payment.expand?.invoice_id?.invoice_number}</TableCell>
-                              <TableCell className="font-medium text-secondary">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell className="font-medium">
+                                <AmountText value={payment.amount} />
+                              </TableCell>
                               <TableCell>{payment.approved_by || '-'}</TableCell>
                               <TableCell>{formatDate(payment.approval_date)}</TableCell>
                               <TableCell className="text-right">
@@ -304,7 +310,9 @@ const PaymentManagement = () => {
                             <TableRow key={payment.id}>
                               <TableCell>{formatDate(payment.payment_date)}</TableCell>
                               <TableCell className="font-medium">{payment.expand?.tenant_id?.name}</TableCell>
-                              <TableCell className="font-medium text-destructive">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell className="font-medium">
+                                <AmountText value={payment.amount} />
+                              </TableCell>
                               <TableCell className="max-w-xs truncate" title={payment.rejection_reason}>
                                 {payment.rejection_reason || 'No reason provided'}
                               </TableCell>

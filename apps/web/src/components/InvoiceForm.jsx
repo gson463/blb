@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { dateAtNoonEAT } from '@/lib/datetimeEAT';
 import { X } from 'lucide-react';
 import { logActivity } from '@/lib/activityLog';
 
@@ -87,6 +88,7 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
     }
     if (name === 'unit_id') {
       const tenant = tenants.find((t) => t.unit_id === value);
+      const unitRow = units.find((u) => u.id === value);
       let amountStr = '';
       if (tenant?.id) {
         try {
@@ -98,7 +100,10 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
             amountStr = String(lease.rent_amount);
           }
         } catch {
-          /* no active lease */
+          /* no active lease yet — use unit monthly rent */
+          if (unitRow?.rent_amount != null) {
+            amountStr = String(unitRow.rent_amount);
+          }
         }
       }
       setFormData((prev) => ({
@@ -137,7 +142,7 @@ const InvoiceForm = ({ invoice, onClose, onSuccess }) => {
         unit_id: formData.unit_id,
         tenant_id: formData.tenant_id,
         amount: parseFloat(formData.amount),
-        due_date: `${formData.due_date} 12:00:00.000Z`,
+        due_date: dateAtNoonEAT(formData.due_date),
         status: formData.status
       };
 

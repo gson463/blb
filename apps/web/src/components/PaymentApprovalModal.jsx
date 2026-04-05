@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import { formatCurrency } from '@/lib/invoiceUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PaymentReceiptViewer from './PaymentReceiptViewer.jsx';
 import { toast } from 'sonner';
 import { logActivity } from '@/lib/activityLog';
+import { dateAtNoonEAT, todayDateStringEAT } from '@/lib/datetimeEAT';
 import { X, CheckCircle, XCircle } from 'lucide-react';
 
 const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
@@ -27,7 +28,7 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0] + ' 12:00:00.000Z';
+      const today = dateAtNoonEAT(todayDateStringEAT());
       
       if (actionType === 'approve') {
         // Update payment
@@ -122,7 +123,7 @@ const PaymentApprovalModal = ({ payment, onClose, onSuccess }) => {
                   </div>
                   <div className="pt-3 mt-3 border-t flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Amount</span>
-                    <span className="text-xl font-bold text-primary">{formatCurrency(payment.amount)}</span>
+                    <AmountText value={payment.amount} className="text-xl font-bold" />
                   </div>
                 </div>
               </div>

@@ -3,12 +3,12 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import {
-  formatCurrency,
   formatDate,
   isPaymentApproved,
   isPaymentPending,
   isPaymentRejected,
 } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -239,7 +239,9 @@ const TenantPaymentHistoryPage = () => {
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">{formatDate(payment.payment_date)}</TableCell>
                       <TableCell>{payment.expand?.invoice_id?.invoice_number || '-'}</TableCell>
-                      <TableCell className="font-bold">{formatCurrency(payment.amount)}</TableCell>
+                      <TableCell className="font-bold">
+                      <AmountText value={payment.amount} className="font-bold" />
+                    </TableCell>
                       <TableCell>
                         <span
                           className={`px-2.5 py-1 text-xs font-medium rounded-full ${

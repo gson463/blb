@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency, formatDate } from '@/lib/paymentUtils';
+import { formatDate } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { downloadInvoicePdf } from '@/lib/pdfUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -248,7 +249,9 @@ const TenantInvoicesPage = () => {
                           {formatDate(invoice.due_date)}
                           {isOverdue && <AlertCircle className="w-3 h-3 ml-1" />}
                         </TableCell>
-                        <TableCell className="font-bold">{formatCurrency(invoice.amount)}</TableCell>
+                        <TableCell className="font-bold">
+                        <AmountText value={invoice.amount} className="font-bold" />
+                      </TableCell>
                         <TableCell>
                           <span
                             className={`px-2.5 py-1 text-xs font-medium rounded-full ${

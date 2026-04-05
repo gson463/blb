@@ -3,10 +3,10 @@ import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
 
-// Format: { THEME_NAME: CSS_SELECTOR }
+// Format: { THEME_NAME: CSS_SELECTOR } — dark palette when html has any “dark” theme class (no `.dark`)
 const THEMES = {
   light: "",
-  dark: ".dark"
+  dark: ":is(.forest-walk, .night-dream, .forest, .winter-blue)",
 }
 
 const ChartContext = React.createContext(null)

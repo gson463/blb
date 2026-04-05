@@ -4,7 +4,9 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
 import { buildPaymentsFilter, buildPropertiesFilter, buildTenantsFilter, buildUnitsFilter } from '@/lib/staffDataScope';
-import { formatCurrency, generatePaymentReport } from '@/lib/paymentUtils';
+import { generatePaymentReport } from '@/lib/paymentUtils';
+import { todayDateStringEAT } from '@/lib/datetimeEAT';
+import { AmountText } from '@/components/AmountText.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,7 +72,7 @@ const PaymentHistory = () => {
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `payment_history_${activeTab}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `payment_history_${activeTab}_${todayDateStringEAT()}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -183,7 +185,9 @@ const PaymentHistory = () => {
                         filteredPayments.map((payment) => (
                           <TableRow key={payment.id}>
                             <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
-                            <TableCell className="font-medium">{formatCurrency(payment.amount)}</TableCell>
+                            <TableCell className="font-medium">
+                              <AmountText value={payment.amount} />
+                            </TableCell>
                             {activeTab !== 'tenant' && <TableCell>{payment.expand?.tenant_id?.name}</TableCell>}
                             {activeTab !== 'unit' && <TableCell>{payment.expand?.unit_id?.name}</TableCell>}
                             {activeTab !== 'property' && <TableCell>{payment.expand?.property_id?.name}</TableCell>}

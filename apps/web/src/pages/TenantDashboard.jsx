@@ -4,7 +4,8 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency, formatDate, isPaymentApproved, isPaymentRejected } from '@/lib/paymentUtils';
+import { formatDate, isPaymentApproved, isPaymentRejected } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,7 +132,7 @@ const TenantDashboard = () => {
             <div className="flex items-start space-x-3 p-4 rounded-xl bg-destructive/10 text-destructive">
               <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium">You have {stats.unpaidInvoices} unpaid invoice(s) totaling {formatCurrency(stats.rentBalance)}.</p>
+                <p className="text-sm font-medium">You have {stats.unpaidInvoices} unpaid invoice(s) totaling <AmountText value={stats.rentBalance} />.</p>
                 <Link to="/tenant/upload-payment" className="text-sm underline font-semibold mt-1 inline-block">Pay now</Link>
               </div>
             </div>
@@ -169,7 +170,7 @@ const TenantDashboard = () => {
               <Receipt className="w-5 h-5 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold">{formatCurrency(unit?.rent_amount || 0)}</div>
+              <AmountText value={unit?.rent_amount || 0} className="text-xl font-bold" />
             </CardContent>
           </Card>
 
@@ -179,9 +180,7 @@ const TenantDashboard = () => {
               <AlertCircle className={`w-5 h-5 ${stats.rentBalance > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
             </CardHeader>
             <CardContent>
-              <div className={`text-xl font-bold ${stats.rentBalance > 0 ? 'text-destructive' : ''}`}>
-                {formatCurrency(stats.rentBalance)}
-              </div>
+              <AmountText value={stats.rentBalance} className="text-xl font-bold" />
             </CardContent>
           </Card>
 
@@ -218,7 +217,9 @@ const TenantDashboard = () => {
                         <p className="text-xs text-muted-foreground">Due: {formatDate(invoice.due_date)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-sm">{formatCurrency(invoice.amount)}</p>
+                        <p className="font-bold text-sm">
+                          <AmountText value={invoice.amount} className="text-sm font-bold" />
+                        </p>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           invoice.status === 'Paid' ? 'bg-secondary/10 text-secondary' :
                           invoice.status === 'Unpaid' ? 'bg-destructive/10 text-destructive' :
@@ -254,7 +255,9 @@ const TenantDashboard = () => {
                     <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
                       <div>
                         <p className="font-medium text-sm">{formatDate(payment.payment_date)}</p>
-                        <p className="text-xs text-muted-foreground">Amount: {formatCurrency(payment.amount)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Amount: <AmountText value={payment.amount} className="text-xs font-medium" />
+                        </p>
                       </div>
                       <div className="text-right">
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${

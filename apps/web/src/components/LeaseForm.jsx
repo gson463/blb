@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { logActivity } from '@/lib/activityLog';
+import { dateAtNoonEAT } from '@/lib/datetimeEAT';
 
 const LeaseForm = ({ lease, onClose, onSuccess }) => {
   const { currentUser } = useAuth();
@@ -100,8 +101,8 @@ const LeaseForm = ({ lease, onClose, onSuccess }) => {
         property_id: formData.property_id,
         unit_id: formData.unit_id,
         tenant_id: formData.tenant_id,
-        start_date: `${formData.start_date} 12:00:00.000Z`,
-        end_date: `${formData.end_date} 12:00:00.000Z`,
+        start_date: dateAtNoonEAT(formData.start_date),
+        end_date: dateAtNoonEAT(formData.end_date),
         rent_amount: parseFloat(formData.rent_amount),
         status: formData.status
       };

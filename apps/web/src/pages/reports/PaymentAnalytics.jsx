@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency, formatDate } from '@/lib/paymentUtils';
+import { formatDate } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { getPaymentStatusBreakdown, getAverageApprovalTime, getPaymentsByProperty } from '@/lib/reportUtils';
 import { exportToCSV, exportToPDF } from '@/lib/exportUtils';
 import { buildPropertiesFilter } from '@/lib/staffDataScope';
@@ -225,7 +226,9 @@ const PaymentAnalytics = () => {
                             <div className="text-sm">{payment.expand?.property_id?.name}</div>
                             <div className="text-xs text-muted-foreground">{payment.expand?.unit_id?.name}</div>
                           </TableCell>
-                          <TableCell className="text-right font-bold">{formatCurrency(payment.amount)}</TableCell>
+                          <TableCell className="text-right font-bold">
+                          <AmountText value={payment.amount} className="font-bold" />
+                        </TableCell>
                           <TableCell>
                             <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                               payment.status === 'Approved' ? 'bg-secondary/10 text-secondary' :

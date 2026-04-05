@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { buildPropertiesFilter } from '@/lib/staffDataScope';
 import { 
   calculateTotalRevenue, 
@@ -169,21 +169,21 @@ const ReportsDashboard = () => {
               <Card className="shadow-sm border-border/50 bg-secondary/5">
                 <CardContent className="p-6">
                   <p className="text-sm font-medium text-secondary/80 uppercase tracking-wider mb-2">Total Collected</p>
-                  <h3 className="text-3xl font-bold text-secondary">{formatCurrency(stats.collected)}</h3>
+                  <AmountText value={stats.collected} className="text-3xl font-bold" />
                   <p className="text-sm text-muted-foreground mt-2">Collection Rate: <span className="font-bold text-foreground">{stats.collectionRate}%</span></p>
                 </CardContent>
               </Card>
               <Card className="shadow-sm border-border/50 bg-destructive/5">
                 <CardContent className="p-6">
                   <p className="text-sm font-medium text-destructive/80 uppercase tracking-wider mb-2">Total Unpaid</p>
-                  <h3 className="text-3xl font-bold text-destructive">{formatCurrency(stats.unpaid)}</h3>
+                  <AmountText value={stats.unpaid} className="text-3xl font-bold" />
                   <p className="text-sm text-muted-foreground mt-2">Outstanding invoices</p>
                 </CardContent>
               </Card>
               <Card className="shadow-sm border-border/50 bg-accent/5">
                 <CardContent className="p-6">
                   <p className="text-sm font-medium text-accent/80 uppercase tracking-wider mb-2">Pending Approval</p>
-                  <h3 className="text-3xl font-bold text-accent">{formatCurrency(stats.pending)}</h3>
+                  <AmountText value={stats.pending} className="text-3xl font-bold" />
                   <p className="text-sm text-muted-foreground mt-2">Awaiting verification</p>
                 </CardContent>
               </Card>

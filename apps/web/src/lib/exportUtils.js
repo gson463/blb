@@ -2,6 +2,7 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { formatCurrency } from '@/lib/paymentUtils';
+import { todayDateStringEAT } from '@/lib/datetimeEAT';
 
 export const exportToPDF = (reportTitle, dateRange, columns, tableData) => {
   const doc = new jsPDF();
@@ -43,13 +44,13 @@ export const exportToPDF = (reportTitle, dateRange, columns, tableData) => {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `Generated on ${new Date().toLocaleString()} - Page ${i} of ${pageCount}`,
+      `Generated on ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Nairobi' })} EAT - Page ${i} of ${pageCount}`,
       14,
       doc.internal.pageSize.height - 10
     );
   }
   
-  doc.save(`${reportTitle.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`${reportTitle.replace(/\s+/g, '_').toLowerCase()}_${todayDateStringEAT()}.pdf`);
 };
 
 export const exportToCSV = (reportTitle, columns, tableData) => {
@@ -71,7 +72,7 @@ export const exportToCSV = (reportTitle, columns, tableData) => {
   const url = URL.createObjectURL(blob);
   
   link.setAttribute('href', url);
-  link.setAttribute('download', `${reportTitle.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute('download', `${reportTitle.replace(/\s+/g, '_').toLowerCase()}_${todayDateStringEAT()}.csv`);
   link.style.visibility = 'hidden';
   
   document.body.appendChild(link);

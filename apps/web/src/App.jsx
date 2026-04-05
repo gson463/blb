@@ -2,6 +2,7 @@
 import React from 'react';
 import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
+import { AppThemeProvider } from './components/AppThemeProvider.jsx';
 import { Toaster } from '@/components/ui/sonner';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -55,6 +56,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <AppThemeProvider>
         <ScrollToTop />
         <Routes>
           {/* Public Routes */}
@@ -376,6 +378,7 @@ function App() {
           />
         </Routes>
         <Toaster />
+        </AppThemeProvider>
       </AuthProvider>
     </Router>
   );

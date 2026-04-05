@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import pb from '@/lib/pocketbaseClient';
-import { formatCurrency, formatDate } from '@/lib/paymentUtils';
+import { formatDate } from '@/lib/paymentUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { getDaysUntilExpiry } from '@/lib/leaseUtils';
 import { downloadLeasePdf } from '@/lib/pdfUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -236,7 +237,7 @@ const TenantLeasePage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Monthly Rent</p>
-                  <p className="font-bold text-2xl text-foreground">{formatCurrency(lease.rent_amount)}</p>
+                  <AmountText value={lease.rent_amount} className="font-bold text-2xl" />
                 </div>
               </div>
               <div className="p-6 space-y-6">

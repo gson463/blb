@@ -19,6 +19,7 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
     name: '',
     type: 'Apartment',
     rent_amount: '',
+    payment_period_months: '12',
     status: 'Vacant',
     image: null
   });
@@ -27,15 +28,35 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
   useEffect(() => {
     fetchProperties();
     if (unit) {
+      const rent =
+        unit.rent_amount != null && unit.rent_amount !== ''
+          ? String(unit.rent_amount)
+          : '';
+      const ppm =
+        unit.payment_period_months != null && unit.payment_period_months !== ''
+          ? String(unit.payment_period_months)
+          : '12';
       setFormData({
         property_id: unit.property_id || propertyId || '',
-        name: unit.name || '',
+        name: unit.name ?? '',
         type: unit.type || 'Apartment',
-        rent_amount: unit.rent_amount || '',
+        rent_amount: rent,
+        payment_period_months: ppm,
         status: unit.status || 'Vacant',
-        image: null
+        image: null,
+      });
+    } else {
+      setFormData({
+        property_id: propertyId || '',
+        name: '',
+        type: 'Apartment',
+        rent_amount: '',
+        payment_period_months: '12',
+        status: 'Vacant',
+        image: null,
       });
     }
+    setErrors({});
   }, [unit, propertyId]);
 
   const fetchProperties = async () => {
@@ -66,6 +87,10 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
     if (!formData.property_id) newErrors.property_id = 'Property is required';
     if (!formData.name.trim()) newErrors.name = 'Unit name is required';
     if (!formData.rent_amount || formData.rent_amount <= 0) newErrors.rent_amount = 'Valid rent amount is required';
+    const ppm = parseInt(formData.payment_period_months, 10);
+    if (!Number.isFinite(ppm) || ppm < 1 || ppm > 120) {
+      newErrors.payment_period_months = 'Payment period must be between 1 and 120 months';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -81,6 +106,7 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
       data.append('name', formData.name);
       data.append('type', formData.type);
       data.append('rent_amount', parseFloat(formData.rent_amount));
+      data.append('payment_period_months', parseInt(formData.payment_period_months, 10));
       data.append('status', formData.status);
       if (formData.image) {
         data.append('image', formData.image);
@@ -169,7 +195,7 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
           </div>
 
           <div>
-            <Label htmlFor="rent_amount">Rent Amount (Tsh)</Label>
+            <Label htmlFor="rent_amount">Rent/Month (Tsh)</Label>
             <Input
               id="rent_amount"
               name="rent_amount"
@@ -180,6 +206,29 @@ const UnitForm = ({ unit, propertyId, onClose, onSuccess }) => {
               className="mt-1"
             />
             {errors.rent_amount && <p className="text-sm text-destructive mt-1">{errors.rent_amount}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="payment_period_months">Payment period (months)</Label>
+            <Input
+              id="payment_period_months"
+              name="payment_period_months"
+              type="number"
+              min={1}
+              max={120}
+              step={1}
+              value={formData.payment_period_months}
+              onChange={handleChange}
+              placeholder="e.g., 6"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              How often rent is billed (e.g. 6 = every six months). First onboarding invoice = monthly rent × this
+              number.
+            </p>
+            {errors.payment_period_months && (
+              <p className="text-sm text-destructive mt-1">{errors.payment_period_months}</p>
+            )}
           </div>
 
           <div>

@@ -6,8 +6,10 @@ import pb from '@/lib/pocketbaseClient';
 import { buildInvoiceListFilter, buildPropertiesFilter, getLandlordScopeId } from '@/lib/staffDataScope';
 import { downloadCsv, parseCsv } from '@/lib/csvUtils';
 import { downloadInvoicePdf } from '@/lib/pdfUtils';
-import { calculateInvoiceStatus, formatCurrency, generateInvoiceNumber } from '@/lib/invoiceUtils';
+import { calculateInvoiceStatus, generateInvoiceNumber } from '@/lib/invoiceUtils';
+import { AmountText } from '@/components/AmountText.jsx';
 import { logActivity } from '@/lib/activityLog';
+import { dateAtNoonEAT } from '@/lib/datetimeEAT';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -250,9 +252,7 @@ const InvoiceManagement = () => {
         fail++;
         continue;
       }
-      const due_date = /^\d{4}-\d{2}-\d{2}$/.test(dueRaw)
-        ? `${dueRaw} 12:00:00.000Z`
-        : `${dueRaw.split('T')[0]} 12:00:00.000Z`;
+      const due_date = dateAtNoonEAT(/^\d{4}-\d{2}-\d{2}$/.test(dueRaw) ? dueRaw : dueRaw.split('T')[0]);
       let status = row.status?.trim() || 'Unpaid';
       if (!['Unpaid', 'Paid', 'Pending Approval'].includes(status)) status = 'Unpaid';
       try {
@@ -444,7 +444,9 @@ const InvoiceManagement = () => {
                               <div className="text-xs text-muted-foreground">{invoice.expand?.property_id?.name}</div>
                             </TableCell>
                             <TableCell>{invoice.expand?.tenant_id?.name}</TableCell>
-                            <TableCell className="font-medium">{formatCurrency(invoice.amount)}</TableCell>
+                            <TableCell className="font-medium">
+                              <AmountText value={invoice.amount} />
+                            </TableCell>
                             <TableCell>
                               <span className={isOverdue ? 'text-destructive font-medium' : ''}>
                                 {new Date(invoice.due_date).toLocaleDateString()}

@@ -1,3 +1,4 @@
+import { formatDateOnlyEAT } from '@/lib/datetimeEAT';
 
 /** Tanzanian Shilling (TZS); displayed as Tsh for product copy */
 export const formatCurrency = (amount) => {
@@ -11,25 +12,27 @@ export const formatCurrency = (amount) => {
 };
 
 export const generatePaymentId = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const d = new Date();
+  const ymd = d.toLocaleDateString('sv-SE', { timeZone: 'Africa/Nairobi' });
+  const y = ymd.slice(0, 4);
+  const m = ymd.slice(5, 7);
   const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-  return `PAY-${year}${month}-${random}`;
+  return `PAY-${y}${m}-${random}`;
 };
 
 export const formatDate = (date) => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', {
+  return new Date(date).toLocaleDateString('en-TZ', {
+    timeZone: 'Africa/Nairobi',
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   });
 };
 
 export const generatePaymentReceiptFilename = (tenantName, date) => {
   const safeName = tenantName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  const dateStr = new Date(date).toISOString().split('T')[0];
+  const dateStr = formatDateOnlyEAT(new Date(date));
   return `receipt_${safeName}_${dateStr}`;
 };
 

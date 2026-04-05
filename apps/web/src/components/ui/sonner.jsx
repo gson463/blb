@@ -1,14 +1,24 @@
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
 
+const DARK_THEMES = new Set(["forest-walk", "night-dream", "forest", "winter-blue"])
+
 const Toaster = ({
   ...props
 }) => {
-  const { theme = "system" } = useTheme()
+  const { theme = "system", resolvedTheme } = useTheme()
+  const sonnerTheme =
+    theme === "system"
+      ? resolvedTheme === "dark"
+        ? "dark"
+        : "light"
+      : DARK_THEMES.has(theme)
+        ? "dark"
+        : "light"
 
   return (
     <Sonner
-      theme={theme}
+      theme={sonnerTheme}
       className="toaster group"
       toastOptions={{
         classNames: {

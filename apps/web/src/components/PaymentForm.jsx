@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/paymentUtils';
+import { dateAtNoonEAT, todayDateStringEAT } from '@/lib/datetimeEAT';
 import { X, Upload } from 'lucide-react';
 
 const PaymentForm = ({ payment, onClose, onSuccess }) => {
@@ -23,7 +24,7 @@ const PaymentForm = ({ payment, onClose, onSuccess }) => {
     unit_id: '',
     property_id: '',
     amount: '',
-    payment_date: new Date().toISOString().split('T')[0],
+    payment_date: todayDateStringEAT(),
     payment_method: 'bank',
     notes: '',
     receipt_file: null
@@ -39,7 +40,7 @@ const PaymentForm = ({ payment, onClose, onSuccess }) => {
         unit_id: payment.unit_id || '',
         property_id: payment.property_id || '',
         amount: payment.amount || '',
-        payment_date: payment.payment_date ? payment.payment_date.split(' ')[0] : new Date().toISOString().split('T')[0],
+        payment_date: payment.payment_date ? payment.payment_date.split(' ')[0].split('T')[0] : todayDateStringEAT(),
         payment_method: payment.payment_method || 'bank',
         notes: payment.notes || '',
         receipt_file: null
@@ -116,7 +117,7 @@ const PaymentForm = ({ payment, onClose, onSuccess }) => {
       data.append('unit_id', formData.unit_id);
       data.append('property_id', formData.property_id);
       data.append('amount', parseFloat(formData.amount));
-      data.append('payment_date', `${formData.payment_date} 12:00:00.000Z`);
+      data.append('payment_date', dateAtNoonEAT(formData.payment_date));
       data.append('status', 'Pending Approval'); // Using DB schema value
       
       // Append optional fields if they exist in schema (handling gracefully)
@@ -165,7 +166,9 @@ const PaymentForm = ({ payment, onClose, onSuccess }) => {
               <SelectContent>
                 {invoices.map(inv => (
                   <SelectItem key={inv.id} value={inv.id}>
-                    {inv.invoice_number} - {inv.expand?.tenant_id?.name} ({formatCurrency(inv.amount)})
+                    <span className="text-amount">
+                      {inv.invoice_number} - {inv.expand?.tenant_id?.name} ({formatCurrency(inv.amount)})
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

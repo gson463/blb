@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ["class"],
+  // Treat custom palettes like dark mode so `dark:` utilities apply.
+  darkMode: ["selector", ":is(.forest-walk, .night-dream, .forest, .winter-blue)"],
   content: [
     "./pages/**/*.{js,jsx}",
     "./components/**/*.{js,jsx}",

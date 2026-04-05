@@ -119,6 +119,32 @@ const TenantForm = ({ tenant, onClose, onSuccess }) => {
 
       if (tenant) {
         await pb.collection('tenants').update(tenant.id, tenantData, { $autoCancel: false });
+        // Keep unit ↔ tenant in sync so tenant portal can expand unit/property (units.tenant_id must match user).
+        const uid = userId;
+        if (formData.unit_id !== tenant.unit_id) {
+          if (tenant.unit_id) {
+            try {
+              await pb.collection('units').update(
+                tenant.unit_id,
+                { status: 'Vacant', tenant_id: '' },
+                { $autoCancel: false }
+              );
+            } catch (e) {
+              console.warn('Could not vacate previous unit', e);
+            }
+          }
+          await pb.collection('units').update(
+            formData.unit_id,
+            { status: 'Occupied', tenant_id: uid },
+            { $autoCancel: false }
+          );
+        } else {
+          await pb.collection('units').update(
+            formData.unit_id,
+            { status: 'Occupied', tenant_id: uid },
+            { $autoCancel: false }
+          );
+        }
         toast.success('Tenant updated successfully');
       } else {
         await pb.collection('tenants').create(tenantData, { $autoCancel: false });
